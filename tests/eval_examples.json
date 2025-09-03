@@ -1,0 +1,7 @@
+[
+    {"q": "When is the travel claim submission deadline?",
+     "must_contain": ["14 calendar days", "travel", "submit"]},
+    {"q": "How many annual leave days are there per year?",
+     "must_contain": ["18 days", "Annual leave"]}
+  ]
+  
