@@ -4,7 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = str(BASE_DIR / "data")
 POLICY_DIR = os.getenv("POLICY_DIR", str(Path(DATA_DIR) / "policies"))
-SKILL_DIR = os.getenv("SKILL_DIR", str(Path(DATA_DIR) / "skills"))
+SKILL_MAP_DIR = os.getenv("SKILL_MAP_DIR", str(Path(DATA_DIR) / "skills"))
 
 # Vector store
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "chroma_db"))
@@ -19,3 +19,9 @@ MIN_SCORE = float(os.getenv("RETRIEVE_MIN_SCORE", "0.0"))
 
 SERVICE_NAME = os.getenv("SERVICE_NAME", "aurora-backend")
 ENV = os.getenv("ENV", "dev")
+
+# LLM
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "512"))
