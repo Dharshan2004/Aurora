@@ -1,13 +1,21 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 
-class AskRequest(BaseModel):
-    agent_id: str
-    org_id: Optional[str] = None
-    user_id: Optional[str] = None
-    consent: bool = True
-    question: Optional[str] = None
-    params: Optional[Dict[str, Any]] = None
+class SkillResource(BaseModel):
+    title: str
+    url: str
+    type: str
+    level: str
+
+class WeekPlan(BaseModel):
+    week: int
+    focus: str
+    goals: List[str]
+    resources: List[SkillResource]
+
+class SkillPlan(BaseModel):
+    role: str
+    weeks: List[WeekPlan]
 
 class AskResponse(BaseModel):
     answer: str
@@ -15,3 +23,4 @@ class AskResponse(BaseModel):
     retrieved_docs: List[dict]
     model_id: Optional[str] = None
     latency_ms: Optional[int] = None
+    data: Optional[Dict[str, Any]] = None

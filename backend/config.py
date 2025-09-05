@@ -4,6 +4,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = str(BASE_DIR / "data")
 POLICY_DIR = os.getenv("POLICY_DIR", str(Path(DATA_DIR) / "policies"))
+SKILL_DIR = os.getenv("SKILL_DIR", str(Path(DATA_DIR) / "skills"))
 
 # Vector store
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(BASE_DIR / "chroma_db"))
