@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base theme */
+body { @apply bg-neutral-950 text-neutral-100; }
+
+/* Soft aurora-like background */
+.aurora-bg {
+  background:
+    radial-gradient(1200px 500px at 50% -20%, rgba(59,130,246,.18), transparent),
+    radial-gradient(900px 400px at 90% 0%, rgba(168,85,247,.16), transparent),
+    radial-gradient(700px 300px at 10% 10%, rgba(34,197,94,.12), transparent);
+}
