@@ -145,4 +145,4 @@ chroma_db/
 __pycache__/
 
 .venv/
-audit.db
+*.db

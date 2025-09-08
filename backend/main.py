@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .schemas import AskRequest, AskResponse
 from .agents import get as get_agent, list_agents
-from .agents import welcome  
+from .agents import welcome, skill_navigator
 from .audit import AUDIT, AuditEvent
 from .config import SERVICE_NAME, ENV
 
@@ -56,6 +56,7 @@ def ask(req: AskRequest):
         retrieved_docs=result.get("retrieved_docs",[]),
         model_id=result.get("model_id"),
         latency_ms=result.get("latency_ms"),
+        data=result.get("data"),
     )
 
 @app.get("/admin/audit/count")
