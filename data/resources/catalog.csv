@@ -1,0 +1,9 @@
+title,tags,url
+Code of Conduct Overview,compliance|behaviour,docs/compliance/code_of_conduct.md
+Data Privacy Essentials,compliance|policies,docs/compliance/data_privacy.md
+AI Ethics 101,compliance|ai|ethics,docs/compliance/ai_ethics.md
+Workplace Communication Basics,behaviour|policies,docs/handbook.md#communication
+Time Management Tips,behaviour|growth,docs/handbook.md#time
+Docker Getting Started,role|backend|docker,https://docs.docker.com/get-started/
+Postgres Quickstart,role|backend|postgres,https://www.postgresql.org/docs/current/tutorial-start.html
+Consulting Fundamentals,role|consulting|sales,docs/resources/consulting.md
