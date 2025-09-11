@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+pydantic
+langchain
+langchain-community
+langgraph
+chromadb
+sentence-transformers
+orjson
+sqlalchemy
+mysql-connector-python
+openai>=1.35.0
+tenacity
+python-dotenv
