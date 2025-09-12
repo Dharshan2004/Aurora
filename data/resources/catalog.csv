@@ -1,9 +1,26 @@
-title,tags,url
-Code of Conduct Overview,compliance|behaviour,docs/compliance/code_of_conduct.md
-Data Privacy Essentials,compliance|policies,docs/compliance/data_privacy.md
-AI Ethics 101,compliance|ai|ethics,docs/compliance/ai_ethics.md
-Workplace Communication Basics,behaviour|policies,docs/handbook.md#communication
-Time Management Tips,behaviour|growth,docs/handbook.md#time
-Docker Getting Started,role|backend|docker,https://docs.docker.com/get-started/
-Postgres Quickstart,role|backend|postgres,https://www.postgresql.org/docs/current/tutorial-start.html
-Consulting Fundamentals,role|consulting|sales,docs/resources/consulting.md
+title,tags,url,duration,level
+Code of Conduct Overview,compliance|behaviour,docs/compliance/code_of_conduct.md,30min,beginner
+Data Privacy Essentials,compliance|policies,docs/compliance/data_privacy.md,45min,beginner
+AI Ethics & Responsible AI,compliance|ai|ethics,docs/compliance/ai_ethics.md,60min,intermediate
+Workplace Communication Basics,behaviour|policies,docs/handbook.md#communication,30min,beginner
+Time Management & Productivity,behaviour|growth,docs/handbook.md#time,45min,beginner
+Docker Fundamentals,role|backend|docker,https://docs.docker.com/get-started/,2hrs,intermediate
+PostgreSQL Database Essentials,role|backend|postgres,https://www.postgresql.org/docs/current/tutorial-start.html,3hrs,intermediate
+Python for Backend Development,role|backend|python,https://docs.python.org/3/tutorial/,8hrs,intermediate
+JavaScript Fundamentals,role|frontend|javascript,https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide,6hrs,beginner
+React Development Guide,role|frontend|react,https://react.dev/learn,12hrs,intermediate
+AWS Cloud Practitioner,role|cloud|aws,https://aws.amazon.com/training/,40hrs,beginner
+Kubernetes Basics,role|devops|kubernetes,https://kubernetes.io/docs/tutorials/,8hrs,intermediate
+Git Version Control,role|general|git,https://git-scm.com/doc,4hrs,beginner
+Agile & Scrum Methodology,behaviour|agile|scrum,https://www.scrum.org/resources,6hrs,intermediate
+API Design Best Practices,role|backend|api,https://restfulapi.net/,4hrs,intermediate
+Database Design Principles,role|backend|database,https://www.db-book.com/,16hrs,advanced
+Microservices Architecture,role|backend|microservices,https://microservices.io/,12hrs,advanced
+Machine Learning Basics,role|ai|ml,https://scikit-learn.org/stable/tutorial/,20hrs,intermediate
+Data Analysis with Python,role|data|python,https://pandas.pydata.org/docs/getting_started/,10hrs,intermediate
+Leadership & Team Management,growth|leadership|management,docs/leadership/team_management.md,8hrs,advanced
+Project Management Essentials,growth|pm|planning,docs/pm/project_basics.md,6hrs,intermediate
+Technical Writing Skills,behaviour|communication|writing,docs/skills/tech_writing.md,4hrs,intermediate
+Code Review Best Practices,behaviour|code|review,docs/development/code_review.md,2hrs,intermediate
+Security Fundamentals,compliance|security|cybersecurity,docs/security/fundamentals.md,6hrs,intermediate
+Performance Optimization,role|performance|optimization,docs/development/performance.md,8hrs,advanced

@@ -2,7 +2,7 @@ import uuid, hmac, hashlib, orjson
 from datetime import datetime, timezone
 from sqlalchemy import create_engine, Column, String, Integer, Boolean, JSON, Text, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
-from backend.settings import settings
+from settings import settings
 
 Base = declarative_base()
 engine = create_engine(

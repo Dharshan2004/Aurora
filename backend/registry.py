@@ -1,7 +1,7 @@
 from typing import Dict, Any, Tuple
-from backend.agents.onboarding.agent import execute as onboarding_execute
-from backend.agents.skillnav.agent import execute as skillnav_execute
-from backend.agents.progress.agent import execute as progress_execute
+from agents.onboarding.agent import execute as onboarding_execute
+from agents.skillnav.agent import execute as skillnav_execute
+from agents.progress.agent import execute as progress_execute
 
 REGISTRY = {
     "onboarding": onboarding_execute,
