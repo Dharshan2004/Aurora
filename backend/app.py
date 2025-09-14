@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Dict
 import uuid, time, orjson, json
+from sqlalchemy import text, select, func
 
 from settings import settings
 from audit_store import init_db, now_ts, hmac_sha256, preview
@@ -63,7 +64,7 @@ def healthz():
         # Test database connection
         from db import engine
         with engine.connect() as conn:
-            conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
@@ -143,13 +144,15 @@ def aurora_orchestrate(req: OrchestrateReq):
 def audit_count():
     from backend.audit_store import SessionLocal, AuditEvent
     with SessionLocal() as s:
-        return {"count": s.query(AuditEvent).count()}
+        result = s.execute(select(func.count(AuditEvent.id)))
+        return {"count": result.scalar()}
 
 @app.get("/admin/audit/export")
 def audit_export():
     from backend.audit_store import SessionLocal, AuditEvent
     with SessionLocal() as s:
-        rows = s.query(AuditEvent).order_by(AuditEvent.ts.desc()).limit(500).all()
+        result = s.execute(select(AuditEvent).order_by(AuditEvent.ts.desc()).limit(500))
+        rows = result.scalars().all()
         return [
             {"ts": r.ts, "trace_id": r.trace_id, "agent_id": r.agent_id, "answer_preview": r.answer_preview, "latency_ms": r.latency_ms}
             for r in rows
