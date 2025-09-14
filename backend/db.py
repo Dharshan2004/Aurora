@@ -25,11 +25,29 @@ def create_aurora_engine():
     print(f"SSL CA path: {MYSQL_SSL_CA_PATH}")
     print(f"SSL CA exists: {os.path.exists(MYSQL_SSL_CA_PATH)}")
     
-    # Ensure we're using PyMySQL dialect
+    # Ensure we're using PyMySQL dialect and clean the URL
     db_url = AURORA_DB_URL
     if db_url.startswith("mysql://") and not db_url.startswith("mysql+pymysql://"):
         db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
         print(f"Converted URL to PyMySQL format: {db_url[:50]}...")
+    
+    # Remove any existing SSL parameters from URL to avoid conflicts
+    from urllib.parse import urlparse, urlunparse, parse_qs
+    parsed = urlparse(db_url)
+    query_params = parse_qs(parsed.query)
+    
+    # Remove SSL-related parameters from URL
+    ssl_params_to_remove = ['ssl-mode', 'ssl_ca', 'ssl_verify_cert', 'ssl_verify_identity', 'ssl_disabled']
+    for param in ssl_params_to_remove:
+        query_params.pop(param, None)
+    
+    # Rebuild URL without SSL parameters
+    clean_query = '&'.join([f"{k}={v[0]}" for k, v in query_params.items()])
+    clean_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, clean_query, parsed.fragment))
+    
+    if clean_url != db_url:
+        print(f"Cleaned URL: {clean_url[:50]}...")
+        db_url = clean_url
     
     # SSL configuration for PyMySQL
     ssl_args = {}
@@ -63,27 +81,54 @@ def create_aurora_engine():
         print("Database engine created successfully")
         return engine
     except Exception as e:
-        print(f"Error creating database engine: {e}")
+        print(f"Error creating database engine with SSL: {e}")
         # Fallback: try without SSL
         print("Attempting fallback without SSL...")
-        fallback_engine = create_engine(
-            db_url,
-            poolclass=QueuePool,
-            pool_size=2,
-            max_overflow=3,
-            pool_pre_ping=True,
-            pool_recycle=1800,
-            pool_timeout=30,
-            future=True,
-            echo=False
-        )
-        print("Fallback engine created")
-        return fallback_engine
+        try:
+            fallback_engine = create_engine(
+                db_url,
+                poolclass=QueuePool,
+                pool_size=2,
+                max_overflow=3,
+                pool_pre_ping=True,
+                pool_recycle=1800,
+                pool_timeout=30,
+                future=True,
+                echo=False
+            )
+            print("Fallback engine created successfully")
+            return fallback_engine
+        except Exception as fallback_error:
+            print(f"Fallback also failed: {fallback_error}")
+            # Last resort: try with minimal configuration
+            print("Attempting minimal configuration...")
+            minimal_engine = create_engine(
+                db_url,
+                pool_pre_ping=True,
+                future=True,
+                echo=False
+            )
+            print("Minimal engine created")
+            return minimal_engine
 
-# Create the engine and session factory
-engine = create_aurora_engine()
+# Lazy-loaded engine and session factory
+_engine = None
 Base = declarative_base()
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+def get_engine():
+    """Get or create the database engine with fallback handling."""
+    global _engine
+    if _engine is None:
+        _engine = create_aurora_engine()
+    return _engine
+
+def get_session_local():
+    """Get or create the session factory."""
+    return sessionmaker(bind=get_engine(), autoflush=False, autocommit=False)
+
+# For backward compatibility
+SessionLocal = get_session_local()
+engine = get_engine()
 
 def get_db_session():
     """
