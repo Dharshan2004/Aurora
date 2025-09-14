@@ -25,9 +25,15 @@ def create_aurora_engine():
     print(f"SSL CA path: {MYSQL_SSL_CA_PATH}")
     print(f"SSL CA exists: {os.path.exists(MYSQL_SSL_CA_PATH)}")
     
+    # Ensure we're using PyMySQL dialect
+    db_url = AURORA_DB_URL
+    if db_url.startswith("mysql://") and not db_url.startswith("mysql+pymysql://"):
+        db_url = db_url.replace("mysql://", "mysql+pymysql://", 1)
+        print(f"Converted URL to PyMySQL format: {db_url[:50]}...")
+    
     # SSL configuration for PyMySQL
     ssl_args = {}
-    if "mysql+pymysql" in AURORA_DB_URL and os.path.exists(MYSQL_SSL_CA_PATH):
+    if "mysql+pymysql" in db_url and os.path.exists(MYSQL_SSL_CA_PATH):
         ssl_args = {
             "ssl_ca": MYSQL_SSL_CA_PATH,
             "ssl_verify_cert": True,
@@ -40,7 +46,7 @@ def create_aurora_engine():
     # Create engine with conservative pool settings for free tiers
     try:
         engine = create_engine(
-            AURORA_DB_URL,
+            db_url,
             # Conservative pool settings for free tiers
             poolclass=QueuePool,
             pool_size=2,  # Small pool size for free tier
@@ -61,7 +67,7 @@ def create_aurora_engine():
         # Fallback: try without SSL
         print("Attempting fallback without SSL...")
         fallback_engine = create_engine(
-            AURORA_DB_URL,
+            db_url,
             poolclass=QueuePool,
             pool_size=2,
             max_overflow=3,
