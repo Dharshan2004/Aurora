@@ -10,8 +10,8 @@ class Settings:
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-    # DB: MySQL (via mysql-connector-python)
-    DB_URL = os.getenv("AURORA_DB_URL", "mysql+mysqlconnector://aurora_user:aurora_pass@localhost:3306/aurora_db")
+    # DB: MySQL (via PyMySQL for SSL support)
+    DB_URL = os.getenv("AURORA_DB_URL", "mysql+pymysql://aurora_user:aurora_pass@localhost:3306/aurora_db?charset=utf8mb4")
 
     # Security / integrity
     HMAC_KEY = os.getenv("AURORA_HMAC_KEY", "dev-only-not-secret")

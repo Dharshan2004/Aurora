@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Dict
 import uuid, time, orjson, json
@@ -11,6 +12,15 @@ from registry import execute_agent
 from orchestrator import route as route_agent
 
 app = FastAPI(title="Aurora API")
+
+# Add CORS middleware for demo deployment
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins for demo - restrict in production
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 class ExecReq(BaseModel):
     agent_id: str

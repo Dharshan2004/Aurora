@@ -1,19 +1,9 @@
 import uuid, hmac, hashlib, orjson
 from datetime import datetime, timezone
-from sqlalchemy import create_engine, Column, String, Integer, Boolean, JSON, Text, Float
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import Column, String, Integer, Boolean, JSON, Text, Float
 from settings import settings
-
-Base = declarative_base()
-engine = create_engine(
-    settings.DB_URL,
-    pool_pre_ping=True,
-    pool_recycle=1800,
-    pool_size=5,
-    max_overflow=10,
-    future=True,
-)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+# Import from the centralized database configuration
+from db import engine, SessionLocal, Base
 
 class AuditEvent(Base):
     __tablename__ = "audit_events"
