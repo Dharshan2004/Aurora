@@ -186,8 +186,9 @@ def welcome_stream(req: StreamReq):
         answer = output.get("answer", "I couldn't generate a response.")
         return StreamingResponse(stream_response(answer), media_type="text/plain")
     except Exception as e:
+        error_msg = str(e)  # Capture the error message
         def error_stream():
-            yield f"Error: {str(e)}"
+            yield f"Error: {error_msg}"
         return StreamingResponse(error_stream(), media_type="text/plain")
 
 @app.post("/agents/skillnav/stream")  
@@ -264,8 +265,9 @@ def skillnav_stream(req: StreamReq):
         
         return StreamingResponse(plan_stream(), media_type="text/plain")
     except Exception as e:
+        error_msg = str(e)  # Capture the error message
         def error_stream():
-            yield f"Error generating learning plan: {str(e)}\n"
+            yield f"Error generating learning plan: {error_msg}\n"
             yield "Please try rephrasing your question or try again later."
         return StreamingResponse(error_stream(), media_type="text/plain")
 
@@ -298,6 +300,7 @@ def progress_stream(req: StreamReq):
         
         return StreamingResponse(stream_response(response_text), media_type="text/plain")
     except Exception as e:
+        error_msg = str(e)  # Capture the error message
         def error_stream():
-            yield f"Error: {str(e)}"
+            yield f"Error: {error_msg}"
         return StreamingResponse(error_stream(), media_type="text/plain")
