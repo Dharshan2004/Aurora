@@ -13,12 +13,43 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Install HuggingFace Hub
+      run: pip install huggingface_hub
+      
     - name: Sync backend to HuggingFace Space
-      uses: nateraw/huggingface-sync-action@v0.0.5
-      with:
-        github_repo_id: ${{ github.repository }}
-        huggingface_repo_id: ${{ secrets.HF_SPACE_ID }}
-        hf_token: ${{ secrets.HF_TOKEN }}
-        repo_type: space
-        space_sdk: docker
-        subdirectory: backend
+      run: |
+        python -c "
+        from huggingface_hub import HfApi, create_repo
+        import os
+        
+        api = HfApi(token=os.environ['HF_TOKEN'])
+        repo_id = os.environ['HF_SPACE_ID']
+        
+        # Create the space if it doesn't exist
+        try:
+            create_repo(
+                repo_id=repo_id,
+                repo_type='space',
+                token=os.environ['HF_TOKEN'],
+                space_sdk='docker',
+                private=False
+            )
+            print(f'Created space: {repo_id}')
+        except Exception as e:
+            if 'already exists' in str(e).lower():
+                print(f'Space {repo_id} already exists')
+            else:
+                raise e
+        
+        # Upload files from backend directory
+        api.upload_folder(
+            folder_path='backend',
+            repo_id=repo_id,
+            repo_type='space',
+            token=os.environ['HF_TOKEN']
+        )
+        print(f'Successfully synced backend to {repo_id}')
+        "
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE_ID: ${{ secrets.HF_SPACE_ID }}
