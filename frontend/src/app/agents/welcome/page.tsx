@@ -18,10 +18,10 @@ export default function WelcomeAgentPage() {
           <div className="mt-4 p-4 rounded-xl bg-blue-900/20 border border-blue-800">
             <h3 className="font-semibold text-blue-300 mb-2">💡 Try asking:</h3>
             <ul className="text-sm text-blue-200 space-y-1">
-              <li>• "How do I submit a leave request?"</li>
-              <li>• "What's the travel expense policy?"</li>
-              <li>• "Who do I contact for IT support?"</li>
-              <li>• "What are the working hours?"</li>
+              <li>• &quot;How do I submit a leave request?&quot;</li>
+              <li>• &quot;What&apos;s the travel expense policy?&quot;</li>
+              <li>• &quot;Who do I contact for IT support?&quot;</li>
+              <li>• &quot;What are the working hours?&quot;</li>
             </ul>
           </div>
         </div>

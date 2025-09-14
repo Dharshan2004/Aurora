@@ -18,10 +18,10 @@ export default function SkillNavPage() {
           <div className="mt-4 p-4 rounded-xl bg-blue-900/20 border border-blue-800">
             <h3 className="font-semibold text-blue-300 mb-2">💡 Try asking:</h3>
             <ul className="text-sm text-blue-200 space-y-1">
-              <li>• "Create a learning plan for a backend developer role"</li>
-              <li>• "I need to improve my Python and cloud skills"</li>
-              <li>• "Plan my growth from junior to senior developer"</li>
-              <li>• "What should I learn for data science?"</li>
+              <li>• &quot;Create a learning plan for a backend developer role&quot;</li>
+              <li>• &quot;I need to improve my Python and cloud skills&quot;</li>
+              <li>• &quot;Plan my growth from junior to senior developer&quot;</li>
+              <li>• &quot;What should I learn for data science?&quot;</li>
             </ul>
           </div>
         </div>

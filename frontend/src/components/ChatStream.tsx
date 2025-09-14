@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   endpoint?: string; // default: /api/aurora/agents/welcome/stream
@@ -57,9 +57,9 @@ export default function ChatStream({
         const chunk = decoder.decode(value, { stream: true });
         setOutput((prev) => prev + chunk);
       }
-    } catch (e: any) {
-      if (e.name !== "AbortError") {
-        setError(e?.message ?? "Something went wrong");
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== "AbortError") {
+        setError(e.message ?? "Something went wrong");
       }
     } finally {
       setStreaming(false);

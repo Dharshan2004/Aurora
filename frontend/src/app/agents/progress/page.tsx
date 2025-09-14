@@ -22,7 +22,7 @@ export default function ProgressPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
               <div className="space-y-2">
                 <div className="font-medium text-green-200">1. Question Analysis</div>
-                <p className="text-green-100">Understands what you're asking about (completed, pending, overdue, next steps)</p>
+                <p className="text-green-100">Understands what you&apos;re asking about (completed, pending, overdue, next steps)</p>
               </div>
               <div className="space-y-2">
                 <div className="font-medium text-green-200">2. Data Processing</div>
@@ -47,17 +47,17 @@ export default function ProgressPage() {
                 <div className="space-y-1">
                   <div className="font-medium text-blue-200">📊 Progress Overview:</div>
                   <ul className="text-blue-100 space-y-1">
-                    <li>• "Show my learning progress"</li>
-                    <li>• "How am I doing this month?"</li>
-                    <li>• "Give me a progress summary"</li>
+                    <li>• &quot;Show my learning progress&quot;</li>
+                    <li>• &quot;How am I doing this month?&quot;</li>
+                    <li>• &quot;Give me a progress summary&quot;</li>
                   </ul>
                 </div>
                 <div className="space-y-1">
                   <div className="font-medium text-blue-200">✅ Completed Work:</div>
                   <ul className="text-blue-100 space-y-1">
-                    <li>• "What have I completed?"</li>
-                    <li>• "Show me my achievements"</li>
-                    <li>• "What courses did I finish?"</li>
+                    <li>• &quot;What have I completed?&quot;</li>
+                    <li>• &quot;Show me my achievements&quot;</li>
+                    <li>• &quot;What courses did I finish?&quot;</li>
                   </ul>
                 </div>
               </div>
@@ -65,17 +65,17 @@ export default function ProgressPage() {
                 <div className="space-y-1">
                   <div className="font-medium text-blue-200">⏳ Next Actions:</div>
                   <ul className="text-blue-100 space-y-1">
-                    <li>• "What should I do next?"</li>
-                    <li>• "What's my priority?"</li>
-                    <li>• "What courses are pending?"</li>
+                    <li>• &quot;What should I do next?&quot;</li>
+                    <li>• &quot;What&apos;s my priority?&quot;</li>
+                    <li>• &quot;What courses are pending?&quot;</li>
                   </ul>
                 </div>
                 <div className="space-y-1">
                   <div className="font-medium text-blue-200">🚨 Urgent Items:</div>
                   <ul className="text-blue-100 space-y-1">
-                    <li>• "What's overdue?"</li>
-                    <li>• "What needs immediate attention?"</li>
-                    <li>• "Show me urgent deadlines"</li>
+                    <li>• &quot;What&apos;s overdue?&quot;</li>
+                    <li>• &quot;What needs immediate attention?&quot;</li>
+                    <li>• &quot;Show me urgent deadlines&quot;</li>
                   </ul>
                 </div>
               </div>
