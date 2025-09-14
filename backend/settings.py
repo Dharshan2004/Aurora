@@ -19,3 +19,4 @@ class Settings:
     SERVICE_NAME = "aurora-api"
 
 settings = Settings()
+

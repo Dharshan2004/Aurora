@@ -23,13 +23,3 @@ jobs:
         private: false
         space_sdk: docker
         subdirectory: backend
-        space_hardware: cpu-basic
-        space_sleep_time: 0
-        space_secrets: |
-          AURORA_DB_URL=${{ secrets.AURORA_DB_URL }}
-          MYSQL_SSL_CA_PATH=/app/ca.pem
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          AURORA_HMAC_KEY=${{ secrets.AURORA_HMAC_KEY }}
-          AURORA_ENV=production
-          AURORA_INDEX_VERSION=v1
-          CHROMA_DIR=./chroma_store
