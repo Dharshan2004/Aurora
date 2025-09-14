@@ -11,10 +11,19 @@ export default function WelcomeAgentPage() {
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Aurora — Welcome Agent</h1>
-          <p className="text-neutral-400">
-            Ask onboarding questions from policy docs and handbooks.
+          <h1 className="text-3xl font-bold">Aurora — Welcome Agent 👋</h1>
+          <p className="text-neutral-400 mt-2">
+            Ask onboarding questions from policy docs and handbooks. Get instant answers with citations.
           </p>
+          <div className="mt-4 p-4 rounded-xl bg-blue-900/20 border border-blue-800">
+            <h3 className="font-semibold text-blue-300 mb-2">💡 Try asking:</h3>
+            <ul className="text-sm text-blue-200 space-y-1">
+              <li>• "How do I submit a leave request?"</li>
+              <li>• "What's the travel expense policy?"</li>
+              <li>• "Who do I contact for IT support?"</li>
+              <li>• "What are the working hours?"</li>
+            </ul>
+          </div>
         </div>
         <ChatStream />
       </div>

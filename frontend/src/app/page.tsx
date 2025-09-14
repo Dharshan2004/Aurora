@@ -15,18 +15,24 @@ export default function Home() {
             while showcasing Responsible AI and business scalability.
           </p>
 
-          <div className="flex items-center justify-center gap-3 pt-2">
+          <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
             <Link
               href="/agents/welcome"
               className="rounded-xl bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-500 transition"
             >
-              Go to Welcome Agent
+              🚀 Start with Welcome Agent
             </Link>
             <Link
-              href="/dashboard"
-              className="rounded-xl border border-neutral-700 px-5 py-3 font-medium hover:bg-neutral-900 transition"
+              href="/agents/skillnav"
+              className="rounded-xl bg-purple-600 px-5 py-3 font-medium text-white hover:bg-purple-500 transition"
             >
-              Dashboard (coming soon)
+              🧭 Skill Navigator
+            </Link>
+            <Link
+              href="/agents/progress"
+              className="rounded-xl bg-green-600 px-5 py-3 font-medium text-white hover:bg-green-500 transition"
+            >
+              📈 Progress Tracker
             </Link>
           </div>
         </div>
@@ -50,23 +56,27 @@ export default function Home() {
             <p className="text-sm text-neutral-400">
               Personalized 30–60 day learning plans aligned to skills gaps.
             </p>
-            <span className="mt-4 inline-block text-sm text-neutral-500">Coming soon</span>
-          </div>
-
-          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 hover:border-neutral-700 transition">
-            <div className="text-2xl">🤝</div>
-            <h3 className="mt-3 font-semibold">Buddy Agent</h3>
-            <p className="text-sm text-neutral-400">
-              Social check-ins and nudges for peer interaction.
-            </p>
-            <span className="mt-4 inline-block text-sm text-neutral-500">Coming soon</span>
+            <Link href="/agents/skillnav" className="mt-4 inline-block text-sm text-purple-400 hover:text-purple-300">
+              Try it now →
+            </Link>
           </div>
 
           <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 hover:border-neutral-700 transition">
             <div className="text-2xl">📈</div>
-            <h3 className="mt-3 font-semibold">Feedback Agent</h3>
+            <h3 className="mt-3 font-semibold">Progress Companion</h3>
             <p className="text-sm text-neutral-400">
               Weekly growth summaries with transparent, auditable sources.
+            </p>
+            <Link href="/agents/progress" className="mt-4 inline-block text-sm text-green-400 hover:text-green-300">
+              Try it now →
+            </Link>
+          </div>
+
+          <div className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 hover:border-neutral-700 transition">
+            <div className="text-2xl">🔍</div>
+            <h3 className="mt-3 font-semibold">Audit Dashboard</h3>
+            <p className="text-sm text-neutral-400">
+              Transparent AI decision tracking with HMAC-verified logs.
             </p>
             <span className="mt-4 inline-block text-sm text-neutral-500">Coming soon</span>
           </div>

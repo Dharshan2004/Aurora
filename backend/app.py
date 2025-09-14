@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Any, Dict
-import uuid, time, orjson
+import uuid, time, orjson, json
 
-from backend.settings import settings
-from backend.audit_store import init_db, now_ts, hmac_sha256, preview
-from backend.audit_async import audit_enqueue
-from backend.registry import execute_agent
-from backend.orchestrator import route as route_agent
+from settings import settings
+from audit_store import init_db, now_ts, hmac_sha256, preview
+from audit_async import audit_enqueue
+from registry import execute_agent
+from orchestrator import route as route_agent
 
 app = FastAPI(title="Aurora API")
 
@@ -23,6 +24,12 @@ class OrchestrateReq(BaseModel):
     org_id: str = "demo_org"
     user_id: str = "demo_user"
     input: Dict[str, Any] = {}
+    consent: bool = True
+
+class StreamReq(BaseModel):
+    msg: str
+    org_id: str = "demo_org"
+    user_id: str = "demo_user"
     consent: bool = True
 
 @app.on_event("startup")
@@ -98,3 +105,150 @@ def audit_export():
             {"ts": r.ts, "trace_id": r.trace_id, "agent_id": r.agent_id, "answer_preview": r.answer_preview, "latency_ms": r.latency_ms}
             for r in rows
         ]
+
+def stream_response(text: str):
+    """Stream text token by token for better UX"""
+    words = text.split()
+    for i, word in enumerate(words):
+        if i == 0:
+            yield word
+        else:
+            yield " " + word
+        time.sleep(0.05)  # Small delay for streaming effect
+
+@app.post("/agents/welcome/stream")
+def welcome_stream(req: StreamReq):
+    """Streaming endpoint for Welcome Agent - matches frontend expectations"""
+    if not req.consent:
+        def error_stream():
+            yield "Consent required to proceed."
+        return StreamingResponse(error_stream(), media_type="text/plain")
+    
+    # Route to onboarding agent
+    payload = {
+        "org_id": req.org_id,
+        "user_id": req.user_id,
+        "input": {"question": req.msg},
+        "consent": req.consent
+    }
+    
+    try:
+        output, meta = execute_agent("onboarding", payload)
+        answer = output.get("answer", "I couldn't generate a response.")
+        return StreamingResponse(stream_response(answer), media_type="text/plain")
+    except Exception as e:
+        def error_stream():
+            yield f"Error: {str(e)}"
+        return StreamingResponse(error_stream(), media_type="text/plain")
+
+@app.post("/agents/skillnav/stream")  
+def skillnav_stream(req: StreamReq):
+    """Streaming endpoint for Skill Navigator Agent"""
+    if not req.consent:
+        def error_stream():
+            yield "Consent required to proceed."
+        return StreamingResponse(error_stream(), media_type="text/plain")
+    
+    # Parse skill navigation request from message
+    payload = {
+        "org_id": req.org_id,
+        "user_id": req.user_id,
+        "input": {"question": req.msg},
+        "consent": req.consent
+    }
+    
+    try:
+        output, meta = execute_agent("skillnav", payload)
+        # Format the AI-powered plan as readable text
+        plan = output.get("plan_30d", [])
+        explainability = output.get("explainability", "AI-generated learning plan")
+        ai_insights = output.get("ai_insights", "")
+        
+        def plan_stream():
+            yield f"{explainability}\n\n"
+            
+            for week_plan in plan:
+                week_num = week_plan.get('week', '?')
+                week_title = week_plan.get('title', '')
+                
+                if week_title:
+                    yield f"Week {week_num}: {week_title}\n"
+                else:
+                    yield f"Week {week_num}:\n"
+                
+                # Goals
+                goals = week_plan.get('goals', [])
+                if goals:
+                    yield "🎯 Goals:\n"
+                    for goal in goals:
+                        if isinstance(goal, str):
+                            yield f"  • {goal}\n"
+                        else:
+                            yield f"  • {str(goal)}\n"
+                
+                # Technologies
+                technologies = week_plan.get('technologies', [])
+                if technologies:
+                    yield f"💻 Key Technologies: {', '.join(technologies)}\n"
+                
+                # Resources
+                resources = week_plan.get('resources', [])
+                if resources:
+                    yield "📚 Resources:\n"
+                    for res in resources[:3]:  # Limit to 3 resources per week
+                        if isinstance(res, str):
+                            yield f"  • {res}\n"
+                        elif isinstance(res, dict):
+                            yield f"  • {res.get('title', str(res))}\n"
+                        else:
+                            yield f"  • {str(res)}\n"
+                
+                # Project connection
+                project_connection = week_plan.get('project_connection', '')
+                if project_connection:
+                    yield f"🔗 Project Connection: {project_connection}\n"
+                
+                yield "\n"
+            
+            if ai_insights:
+                yield f"🤖 AI Insights: {ai_insights[:500]}...\n" if len(ai_insights) > 500 else f"🤖 AI Insights: {ai_insights}\n"
+        
+        return StreamingResponse(plan_stream(), media_type="text/plain")
+    except Exception as e:
+        def error_stream():
+            yield f"Error generating learning plan: {str(e)}\n"
+            yield "Please try rephrasing your question or try again later."
+        return StreamingResponse(error_stream(), media_type="text/plain")
+
+@app.post("/agents/progress/stream")
+def progress_stream(req: StreamReq):
+    """Streaming endpoint for Progress Companion Agent"""
+    if not req.consent:
+        def error_stream():
+            yield "Consent required to proceed."
+        return StreamingResponse(error_stream(), media_type="text/plain")
+    
+    payload = {
+        "org_id": req.org_id,
+        "user_id": req.user_id,
+        "input": {"question": req.msg},
+        "consent": req.consent
+    }
+    
+    try:
+        output, meta = execute_agent("progress", payload)
+        summary = output.get("summary", "No progress data available.")
+        courses = output.get("courses_completed", [])
+        
+        response_text = f"{summary}\n\n"
+        if courses:
+            response_text += "Recent course completions:\n"
+            for course in courses[:3]:  # Show top 3
+                response_text += f"✅ {course.get('title', 'Course')}\n"
+        response_text += "\nKeep up the great work! 🚀"
+        
+        return StreamingResponse(stream_response(response_text), media_type="text/plain")
+    except Exception as e:
+        def error_stream():
+            yield f"Error: {str(e)}"
+        return StreamingResponse(error_stream(), media_type="text/plain")

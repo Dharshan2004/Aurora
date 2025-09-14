@@ -1,5 +1,5 @@
 import queue, threading
-from backend.audit_store import SessionLocal, AuditEvent
+from audit_store import SessionLocal, AuditEvent
 
 _q = queue.Queue(maxsize=10000)
 

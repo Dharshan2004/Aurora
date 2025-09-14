@@ -29,6 +29,8 @@ async function forward(req: NextRequest, path: string[], method: string) {
     body: method === "GET" || method === "HEAD" ? undefined : req.body,
     // Disable caching for dynamic streams
     cache: "no-store",
+    // Add duplex option for POST/PUT requests with body
+    ...(method !== "GET" && method !== "HEAD" && { duplex: "half" }),
   });
 
   // Forward status + stream body and keep most headers
@@ -43,15 +45,19 @@ async function forward(req: NextRequest, path: string[], method: string) {
   });
 }
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return forward(req, params.path, "GET");
+export async function GET(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const resolvedParams = await params;
+  return forward(req, resolvedParams.path, "GET");
 }
-export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return forward(req, params.path, "POST");
+export async function POST(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const resolvedParams = await params;
+  return forward(req, resolvedParams.path, "POST");
 }
-export async function PUT(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return forward(req, params.path, "PUT");
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const resolvedParams = await params;
+  return forward(req, resolvedParams.path, "PUT");
 }
-export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
-  return forward(req, params.path, "DELETE");
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  const resolvedParams = await params;
+  return forward(req, resolvedParams.path, "DELETE");
 }

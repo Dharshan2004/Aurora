@@ -2,8 +2,11 @@ from typing import Dict, Any, Tuple, List
 import re, time
 from tenacity import retry, stop_after_attempt, wait_exponential
 from openai import OpenAI
-from backend.rag import retrieve
-from backend.settings import settings
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from rag import retrieve
+from settings import settings
 
 client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
