@@ -1,78 +1,55 @@
-# Aurora Backend
+---
+title: Aurora Backend API
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: docker
+sdk_version: "4.21.0"
+app_file: app.py
+pinned: false
+---
 
-FastAPI-based backend for the Aurora learning management system with AI-powered agents.
+# Aurora Backend API
 
-## Development Setup
+AI-powered backend for the Aurora learning management system with personalized guidance, skills growth planning, and transparent feedback.
 
-1. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+## Features
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+- **Welcome Agent**: Onboarding FAQ agent with streaming responses
+- **Skill Navigator**: Personalized 30-60 day learning plans
+- **Progress Companion**: Learning progress tracking and motivation
+- **RAG System**: ChromaDB with OpenAI embeddings
+- **MySQL SSL**: Secure database connections with Aiven
+- **Audit Trail**: Transparent AI decision tracking
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your actual configuration
-```
-
-4. Run the application:
-```bash
-uvicorn app:app --host 0.0.0.0 --port 8000 --reload
-```
-
-## Deploying to HuggingFace Spaces
-
-**IMPORTANT:** Before deployment, ensure you complete these steps:
-
-### Pre-deployment Checklist
-
-1. **📋 Paste Aiven CA Certificate**
-   - Obtain the CA certificate from your Aiven MySQL service
-   - Paste the full certificate content into `backend/ca.pem`
-   - Replace the placeholder content with the actual certificate
-
-2. **⚙️ Configure Space Variables/Secrets**
-   Set these environment variables in your HF Space settings:
-   - `AURORA_DB_URL`: Your MySQL connection string (format: `mysql+pymysql://USER:PASS@HOST:PORT/DBNAME?charset=utf8mb4`)
-   - `MYSQL_SSL_CA_PATH`: Set to `/app/ca.pem`
-   - `OPENAI_API_KEY`: Your OpenAI API key (if using AI features)
-   - `AURORA_HMAC_KEY`: Secure key for integrity checks
-
-3. **🐳 Space Configuration**
-   - Ensure Space type is set to **"Docker"**
-   - Confirm the application runs on port **7860** (HF Spaces requirement)
-   - The Dockerfile handles the rest of the configuration
-
-4. **🔒 SSL Connection**
-   - The app is configured to use SSL when connecting to Aiven MySQL
-   - The CA certificate at `/app/ca.pem` will be used for SSL verification
-   - Pool settings are optimized for free tier usage
-
-### Architecture
-
-- **FastAPI** web framework with async support
-- **SQLAlchemy** ORM with MySQL SSL support via PyMySQL
-- **AI Agents** for onboarding, skill navigation, and progress tracking
-- **RAG System** using ChromaDB and OpenAI embeddings
-- **CORS** enabled for frontend integration
-
-### API Endpoints
+## API Endpoints
 
 - `GET /health` - Health check
 - `POST /v1/agents/execute` - Execute specific agent
 - `POST /v1/aurora` - Smart routing to appropriate agent
-- `POST /agents/{agent_name}/stream` - Streaming responses for real-time UX
+- `POST /agents/{agent_name}/stream` - Streaming responses
 - `GET /admin/audit/*` - Audit trail endpoints
 
-### Database
+## Environment Variables
 
-The application uses MySQL with SSL support for production deployment. The database configuration includes:
-- Conservative pool settings for free tier compatibility
-- SSL certificate verification for secure connections
-- Connection pre-ping and recycling for reliability
+Required environment variables (set in Space settings):
+
+- `AURORA_DB_URL`: MySQL connection string
+- `MYSQL_SSL_CA_PATH`: SSL certificate path (`/app/ca.pem`)
+- `OPENAI_API_KEY`: OpenAI API key for AI features
+- `AURORA_HMAC_KEY`: Secure key for integrity checks
+- `AURORA_ENV`: Environment (`production`)
+- `AURORA_INDEX_VERSION`: Index version (`v1`)
+- `CHROMA_DIR`: ChromaDB directory (`./chroma_store`)
+
+## Deployment
+
+This Space is automatically deployed via GitHub Actions when backend files are updated. The Dockerfile builds the FastAPI application with all dependencies and initializes the ChromaDB vector store.
+
+## Architecture
+
+- **FastAPI**: Web framework with async support
+- **SQLAlchemy**: ORM with MySQL SSL support via PyMySQL
+- **ChromaDB**: Vector database for RAG system
+- **OpenAI**: AI embeddings and language models
+- **Docker**: Containerized deployment
