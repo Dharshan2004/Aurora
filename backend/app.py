@@ -17,7 +17,7 @@ app = FastAPI(title="Aurora API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins for demo - restrict in production
-    allow_credentials=True,
+    allow_credentials=False,  # Changed to False to allow wildcard origins
     allow_methods=["*"],  # Allow all HTTP methods
     allow_headers=["*"],  # Allow all headers
 )
@@ -29,7 +29,7 @@ async def add_cors_headers(request, call_next):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Credentials"] = "false"  # Changed to false
     return response
 
 class ExecReq(BaseModel):
@@ -56,9 +56,24 @@ class StreamReq(BaseModel):
 def startup():
     init_db()
 
-@app.get("/health")
-def health():
-    return {"ok": True, "env": settings.ENV}
+@app.get("/healthz")
+def healthz():
+    """Health check endpoint for monitoring - returns JSON with DB ping"""
+    try:
+        # Test database connection
+        from db import engine
+        with engine.connect() as conn:
+            conn.execute("SELECT 1")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return {
+        "ok": True, 
+        "env": settings.ENV,
+        "database": db_status,
+        "timestamp": time.time()
+    }
 
 @app.options("/{path:path}")
 async def options_handler(path: str):
