@@ -21,33 +21,58 @@ def create_aurora_engine():
     """
     Create SQLAlchemy engine with SSL support and conservative pool settings for free tiers.
     """
+    print(f"Creating database engine with URL: {AURORA_DB_URL[:50]}...")
+    print(f"SSL CA path: {MYSQL_SSL_CA_PATH}")
+    print(f"SSL CA exists: {os.path.exists(MYSQL_SSL_CA_PATH)}")
+    
     # SSL configuration for PyMySQL
     ssl_args = {}
     if "mysql+pymysql" in AURORA_DB_URL and os.path.exists(MYSQL_SSL_CA_PATH):
         ssl_args = {
             "ssl_ca": MYSQL_SSL_CA_PATH,
             "ssl_verify_cert": True,
-            "ssl_verify_identity": False  # Set to True for stricter security if needed
+            "ssl_verify_identity": False
         }
+        print(f"SSL configuration: {ssl_args}")
+    else:
+        print("No SSL configuration applied")
     
     # Create engine with conservative pool settings for free tiers
-    engine = create_engine(
-        AURORA_DB_URL,
-        # Conservative pool settings for free tiers
-        poolclass=QueuePool,
-        pool_size=2,  # Small pool size for free tier
-        max_overflow=3,  # Limited overflow
-        pool_pre_ping=True,  # Verify connections before use
-        pool_recycle=1800,  # Recycle connections every 30 minutes
-        pool_timeout=30,  # Timeout for getting connection from pool
-        # SSL configuration
-        connect_args=ssl_args,
-        # Additional settings
-        future=True,
-        echo=False  # Set to True for debugging
-    )
-    
-    return engine
+    try:
+        engine = create_engine(
+            AURORA_DB_URL,
+            # Conservative pool settings for free tiers
+            poolclass=QueuePool,
+            pool_size=2,  # Small pool size for free tier
+            max_overflow=3,  # Limited overflow
+            pool_pre_ping=True,  # Verify connections before use
+            pool_recycle=1800,  # Recycle connections every 30 minutes
+            pool_timeout=30,  # Timeout for getting connection from pool
+            # SSL configuration
+            connect_args=ssl_args,
+            # Additional settings
+            future=True,
+            echo=False  # Set to True for debugging
+        )
+        print("Database engine created successfully")
+        return engine
+    except Exception as e:
+        print(f"Error creating database engine: {e}")
+        # Fallback: try without SSL
+        print("Attempting fallback without SSL...")
+        fallback_engine = create_engine(
+            AURORA_DB_URL,
+            poolclass=QueuePool,
+            pool_size=2,
+            max_overflow=3,
+            pool_pre_ping=True,
+            pool_recycle=1800,
+            pool_timeout=30,
+            future=True,
+            echo=False
+        )
+        print("Fallback engine created")
+        return fallback_engine
 
 # Create the engine and session factory
 engine = create_aurora_engine()
