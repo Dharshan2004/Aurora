@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-#TRIGGER DEPLOY
 class Settings:
     ENV = os.getenv("AURORA_ENV", "dev")
     INDEX_VERSION = os.getenv("AURORA_INDEX_VERSION", "v1")
