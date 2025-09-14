@@ -22,6 +22,16 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
+# Add additional CORS headers for HuggingFace Spaces
+@app.middleware("http")
+async def add_cors_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
 class ExecReq(BaseModel):
     agent_id: str
     org_id: str = "demo_org"
@@ -49,6 +59,20 @@ def startup():
 @app.get("/health")
 def health():
     return {"ok": True, "env": settings.ENV}
+
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    """Handle CORS preflight requests"""
+    return {"message": "CORS preflight handled"}
+
+@app.get("/cors-test")
+def cors_test():
+    """Test endpoint to verify CORS is working"""
+    return {
+        "message": "CORS test successful",
+        "timestamp": time.time(),
+        "env": settings.ENV
+    }
 
 @app.post("/v1/agents/execute")
 def agents_execute(req: ExecReq):
