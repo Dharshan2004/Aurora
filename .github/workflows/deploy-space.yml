@@ -25,7 +25,8 @@ jobs:
         api = HfApi(token=os.environ['HF_TOKEN'])
         repo_id = os.environ['HF_SPACE_ID']
         
-        # Create the space if it doesn't exist
+        # Try to create the space if it doesn't exist
+        space_created = False
         try:
             create_repo(
                 repo_id=repo_id,
@@ -35,20 +36,26 @@ jobs:
                 private=False
             )
             print(f'Created space: {repo_id}')
+            space_created = True
         except Exception as e:
-            if 'already exists' in str(e).lower():
-                print(f'Space {repo_id} already exists')
+            if 'already exists' in str(e).lower() or 'conflict' in str(e).lower():
+                print(f'Space {repo_id} already exists, continuing with upload...')
             else:
-                raise e
+                print(f'Warning: Could not create space: {e}')
+                print('Attempting to upload anyway (space might exist)...')
         
-        # Upload files from backend directory
-        api.upload_folder(
-            folder_path='backend',
-            repo_id=repo_id,
-            repo_type='space',
-            token=os.environ['HF_TOKEN']
-        )
-        print(f'Successfully synced backend to {repo_id}')
+        # Always try to upload files from backend directory
+        try:
+            api.upload_folder(
+                folder_path='backend',
+                repo_id=repo_id,
+                repo_type='space',
+                token=os.environ['HF_TOKEN']
+            )
+            print(f'Successfully synced backend to {repo_id}')
+        except Exception as e:
+            print(f'Error uploading files: {e}')
+            raise e
         "
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
