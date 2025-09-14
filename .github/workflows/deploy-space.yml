@@ -14,12 +14,12 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Sync backend to HuggingFace Space
-      uses: huggingface/huggingface_hub@main
+      uses: huggingface/sync-repo-to-hub@v0.1
       with:
         hf_token: ${{ secrets.HF_TOKEN }}
-        local_dir: ./backend
         repo_id: ${{ secrets.HF_SPACE_ID }}
         repo_type: space
+        path: backend
         space_sdk: docker
         space_hardware: cpu-basic
         space_sleep_time: 0
