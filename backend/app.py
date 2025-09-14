@@ -159,24 +159,65 @@ def skillnav_stream(req: StreamReq):
     
     try:
         output, meta = execute_agent("skillnav", payload)
-        # Format the plan as readable text
+        # Format the AI-powered plan as readable text
         plan = output.get("plan_30d", [])
+        explainability = output.get("explainability", "AI-generated learning plan")
+        ai_insights = output.get("ai_insights", "")
         
         def plan_stream():
-            yield "Here's your personalized 30-day learning plan:\n\n"
+            yield f"{explainability}\n\n"
             
             for week_plan in plan:
-                yield f"Week {week_plan['week']}: {', '.join(week_plan['goals'])}\n"
-                if week_plan.get('resources'):
-                    yield "Resources:\n"
-                    for res in week_plan['resources'][:2]:  # Limit to 2 resources per week
-                        yield f"- {res}\n"
+                week_num = week_plan.get('week', '?')
+                week_title = week_plan.get('title', '')
+                
+                if week_title:
+                    yield f"Week {week_num}: {week_title}\n"
+                else:
+                    yield f"Week {week_num}:\n"
+                
+                # Goals
+                goals = week_plan.get('goals', [])
+                if goals:
+                    yield "🎯 Goals:\n"
+                    for goal in goals:
+                        if isinstance(goal, str):
+                            yield f"  • {goal}\n"
+                        else:
+                            yield f"  • {str(goal)}\n"
+                
+                # Technologies
+                technologies = week_plan.get('technologies', [])
+                if technologies:
+                    yield f"💻 Key Technologies: {', '.join(technologies)}\n"
+                
+                # Resources
+                resources = week_plan.get('resources', [])
+                if resources:
+                    yield "📚 Resources:\n"
+                    for res in resources[:3]:  # Limit to 3 resources per week
+                        if isinstance(res, str):
+                            yield f"  • {res}\n"
+                        elif isinstance(res, dict):
+                            yield f"  • {res.get('title', str(res))}\n"
+                        else:
+                            yield f"  • {str(res)}\n"
+                
+                # Project connection
+                project_connection = week_plan.get('project_connection', '')
+                if project_connection:
+                    yield f"🔗 Project Connection: {project_connection}\n"
+                
                 yield "\n"
+            
+            if ai_insights:
+                yield f"🤖 AI Insights: {ai_insights[:500]}...\n" if len(ai_insights) > 500 else f"🤖 AI Insights: {ai_insights}\n"
         
         return StreamingResponse(plan_stream(), media_type="text/plain")
     except Exception as e:
         def error_stream():
-            yield f"Error: {str(e)}"
+            yield f"Error generating learning plan: {str(e)}\n"
+            yield "Please try rephrasing your question or try again later."
         return StreamingResponse(error_stream(), media_type="text/plain")
 
 @app.post("/agents/progress/stream")
