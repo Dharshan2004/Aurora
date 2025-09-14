@@ -11,8 +11,14 @@ const ORIGIN = process.env.FASTAPI_URL!;
  */
 async function forward(req: NextRequest, path: string[], method: string) {
   if (!ORIGIN) {
-    return new Response("FASTAPI_URL is not set", { status: 500 });
+    return new Response("FASTAPI_URL environment variable is not set in Vercel. Please set it to your HuggingFace Space URL.", { status: 500 });
   }
+  
+  // Check if ORIGIN is localhost (common mistake)
+  if (ORIGIN.includes('localhost') || ORIGIN.includes('127.0.0.1')) {
+    return new Response(`FASTAPI_URL is set to localhost (${ORIGIN}). Please set it to your HuggingFace Space URL instead.`, { status: 500 });
+  }
+  
   const incomingUrl = new URL(req.url);
   const target = `${ORIGIN}/${path.join("/")}${incomingUrl.search}`;
 
