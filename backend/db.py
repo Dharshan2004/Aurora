@@ -6,6 +6,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import QueuePool
 
+# Ensure PyMySQL is used as MySQLdb
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pass
+
 # Read environment variables
 AURORA_DB_URL = os.getenv("AURORA_DB_URL", "mysql+pymysql://aurora_user:aurora_pass@localhost:3306/aurora_db?charset=utf8mb4")
 MYSQL_SSL_CA_PATH = os.getenv("MYSQL_SSL_CA_PATH", "/app/ca.pem")
