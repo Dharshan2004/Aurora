@@ -104,6 +104,8 @@ def retrieve(query: str, k: int = None):
     if k is None:
         k = int(os.getenv("RETRIEVAL_K", "4"))
     
+    print(f"🔍 RAG Retrieve - Query: '{query}', k={k}")
+    
     vs = get_vectorstore()
     if vs is None:
         print(f"⚠️  Vector store not available - returning empty results for query: '{query[:50]}...'")
@@ -122,22 +124,22 @@ def retrieve(query: str, k: int = None):
         try:
             retriever = vs.as_retriever(search_kwargs={"k": k})
             results = retriever.get_relevant_documents(query)
-            print(f"🔍 Retrieved {len(results)} documents using retriever for query: '{query[:50]}...'")
+            print(f"✅ Retrieved {len(results)} documents using retriever")
         except Exception as retriever_error:
             print(f"⚠️  Retriever failed: {retriever_error}, trying similarity_search")
             results = vs.similarity_search(query, k=k)
-            print(f"🔍 Retrieved {len(results)} documents using similarity_search for query: '{query[:50]}...'")
+            print(f"✅ Retrieved {len(results)} documents using similarity_search")
         
         # Debug: Print source paths for debugging
         for i, doc in enumerate(results):
             source = doc.metadata.get("source", "unknown")
-            print(f"  Doc {i+1}: {source}")
+            content_preview = doc.page_content[:100].replace('\n', ' ')
+            print(f"  📄 Doc {i+1}: {source}")
+            print(f"      Content: {content_preview}...")
         
         return results
     except Exception as e:
         print(f"❌ Vector store retrieval failed for query: '{query[:50]}...' - {e}")
-        import traceback
-        traceback.print_exc()
         return []
 
 def get_document_count():

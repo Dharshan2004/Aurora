@@ -39,7 +39,11 @@ def _llm(prompt: str) -> str:
 def execute(payload: Dict[str, Any]) -> Tuple[Dict, Dict]:
     q = payload.get("input",{}).get("question","").strip()
     t0 = time.time()
+    
+    print(f"🤖 Onboarding Agent - Question: '{q}'")
+    
     docs = retrieve(q, k=8)
+    print(f"🔍 Retrieved {len(docs)} documents before filtering")
     
     # Filter for relevant sources
     allowed_paths = ["policies/", "handbook.md"]
@@ -53,15 +57,28 @@ def execute(payload: Dict[str, Any]) -> Tuple[Dict, Dict]:
 
     if not docs:
         ans = "I don't know from current context. Please check HR."
+        print(f"❌ No relevant documents found - returning default response")
+        print(f"📝 Agent Response: {ans}")
         return ({"answer": ans, "citations": ""}, {"latency_ms": int((time.time()-t0)*1000)})
 
     context = "\n\n---\n\n".join(d.page_content for d in docs[:4])
+    print(f"📚 Context length: {len(context)} characters")
+    print(f"📚 Context preview: {context[:200]}...")
+    
     prompt = f"CONTEXT:\n{context}\n\nQUESTION:\n{q}\n\nANSWER:"
+    print(f"🤖 Sending prompt to LLM (length: {len(prompt)} chars)")
+    
     answer = _llm(prompt)
+    print(f"🤖 LLM Response: {answer}")
 
     if "Sources:" not in answer:
         answer = answer.strip() + "\n\nSources:\n" + build_citations(docs[:4])
+        print(f"📝 Added sources to response")
     
     answer = redact(answer)
+    print(f"📝 Final Agent Response: {answer}")
+    
     meta = {"citations": build_citations(docs[:4]), "latency_ms": int((time.time()-t0)*1000)}
+    print(f"⏱️  Response time: {meta['latency_ms']}ms")
+    
     return ({"answer": answer, "citations": meta["citations"]}, meta)
