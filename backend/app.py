@@ -68,6 +68,7 @@ def healthz():
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
+        print(f"Database connection error: {e}")  # Add logging for debugging
     
     return {
         "ok": True, 
