@@ -111,14 +111,35 @@ async def options_handler(path: str):
     """Handle CORS preflight requests"""
     return {"message": "CORS preflight handled"}
 
-@app.get("/cors-test")
-def cors_test():
-    """Test endpoint to verify CORS is working"""
-    return {
-        "message": "CORS test successful",
-        "timestamp": time.time(),
-        "env": settings.ENV
-    }
+@app.get("/debug/env")
+def debug_env():
+    """Debug endpoint to check environment variables."""
+    try:
+        from vectorstore import test_environment
+        test_environment()
+        
+        # Also check some common environment variables
+        env_vars = {
+            "QDRANT_URL": os.getenv("QDRANT_URL", "Not set"),
+            "QDRANT_API_KEY": "Set" if os.getenv("QDRANT_API_KEY") else "Not set",
+            "QDRANT_COLLECTION": os.getenv("QDRANT_COLLECTION", "aurora"),
+            "AUTO_INGEST": os.getenv("AUTO_INGEST", "0"),
+            "SEED_DATA_DIR": os.getenv("SEED_DATA_DIR", "./data/seed"),
+            "RETRIEVAL_K": os.getenv("RETRIEVAL_K", "4"),
+            "TOTAL_ENV_VARS": len(os.environ)
+        }
+        
+        return {
+            "status": "ok",
+            "environment_variables": env_vars,
+            "qdrant_configured": bool(os.getenv("QDRANT_URL"))
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "qdrant_configured": False
+        }
 
 @app.post("/v1/agents/execute")
 def agents_execute(req: ExecReq):

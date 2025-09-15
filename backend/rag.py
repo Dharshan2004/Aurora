@@ -167,6 +167,10 @@ def ingest_seed_corpus():
 
 def initialize_vectorstore_with_auto_ingest():
     """Initialize vector store with auto-ingestion if enabled and store is empty."""
+    # Test environment variables first
+    from vectorstore import test_environment
+    test_environment()
+    
     # Check if auto-ingest is enabled
     auto_ingest = os.getenv("AUTO_INGEST", "0").strip() == "1"
     

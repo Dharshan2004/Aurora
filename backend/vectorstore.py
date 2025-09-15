@@ -40,8 +40,15 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
         qdrant_api_key = os.getenv("QDRANT_API_KEY")
         collection_name = os.getenv("QDRANT_COLLECTION", "aurora")
         
+        # Debug: Print environment variables (without sensitive data)
+        print(f"🔍 Environment check:")
+        print(f"  QDRANT_URL: {'✅ Set' if qdrant_url else '❌ Not set'}")
+        print(f"  QDRANT_API_KEY: {'✅ Set' if qdrant_api_key else '❌ Not set'}")
+        print(f"  QDRANT_COLLECTION: {collection_name}")
+        
         if not qdrant_url:
             print("❌ QDRANT_URL not configured")
+            print("💡 Please set QDRANT_URL environment variable (e.g., https://your-cluster.qdrant.cloud)")
             return None
         
         # Initialize Qdrant client
@@ -153,6 +160,37 @@ def add_texts(store: Qdrant, texts: List[str], metadatas: Optional[List[Dict[str
         
     except Exception as e:
         print(f"❌ Failed to add texts to vector store: {e}")
+
+def test_environment():
+    """Test function to verify environment variables are accessible."""
+    print("🔍 Testing environment variables:")
+    
+    # Test all Qdrant-related environment variables
+    env_vars = [
+        "QDRANT_URL",
+        "QDRANT_API_KEY", 
+        "QDRANT_COLLECTION",
+        "AUTO_INGEST",
+        "SEED_DATA_DIR",
+        "RETRIEVAL_K"
+    ]
+    
+    for var in env_vars:
+        value = os.getenv(var)
+        if value:
+            # Don't print sensitive values
+            if "API_KEY" in var:
+                print(f"  {var}: ✅ Set (hidden)")
+            else:
+                print(f"  {var}: ✅ Set = {value}")
+        else:
+            print(f"  {var}: ❌ Not set")
+    
+    # Test if we can access the environment at all
+    print(f"  Total env vars: {len(os.environ)}")
+    print(f"  Python path: {os.getcwd()}")
+    
+    return os.getenv("QDRANT_URL") is not None
 
 def is_qdrant_available() -> bool:
     """
