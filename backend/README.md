@@ -62,6 +62,20 @@ Required environment variables (set in Space settings):
 - ChromaDB automatically falls back to writable directories if configured path fails
 - Startup logs show the final chosen directory and writability status
 
+### RAG Bootstrap
+
+**Environment variables for auto-ingestion:**
+- `CHROMA_DIR=/tmp/chroma_store` - ChromaDB persistence directory
+- `CHROMA_AUTO_INGEST=1` - Auto-build vectors if store is empty at startup
+- `SEED_DATA_DIR=./data/seed` - Directory containing demo files (markdown/txt/pdf)
+- `ALLOW_ADMIN=1` - Enable `POST /admin/reindex` endpoint for manual reindexing
+
+**Features:**
+- Automatic ingestion of seed data when store is empty
+- Document count logging on startup
+- Admin reindex endpoint for rebuilding vectors on demand
+- Retrieval telemetry for debugging empty results
+
 ## Deployment
 
 This Space is automatically deployed via GitHub Actions when backend files are updated. The Dockerfile builds the FastAPI application with all dependencies and initializes the ChromaDB vector store.

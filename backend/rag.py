@@ -15,8 +15,8 @@ def _get_chroma_dir():
     # Read CHROMA_DIR from environment
     chroma_dir = os.getenv("CHROMA_DIR", "/tmp/chroma_store")
     
-    # Check for reset flag
-    reset_chroma = os.getenv("CHROMA_RESET", "").lower() in {"1", "true"}
+    # Check for reset flag - only reset if explicitly set to 1
+    reset_chroma = os.getenv("CHROMA_RESET", "").strip() == "1"
     
     def _test_writability(path):
         """Test if directory is writable."""
@@ -32,7 +32,7 @@ def _get_chroma_dir():
             return False
     
     def _reset_directory(path):
-        """Reset directory contents if reset flag is set."""
+        """Reset directory contents only if CHROMA_RESET=1."""
         if reset_chroma:
             try:
                 if os.path.exists(path):
@@ -143,13 +143,97 @@ def get_vectorstore():
         return None
 
 def retrieve(query: str, k: int = 6):
-    """Retrieve documents from ChromaDB."""
+    """Retrieve documents from ChromaDB with telemetry."""
     vs = get_vectorstore()
     if vs is None:
-        print("⚠️  ChromaDB not available - returning empty results")
+        print(f"⚠️  ChromaDB not available - returning empty results for query: '{query[:50]}...'")
         return []
-    return vs.similarity_search(query, k=k)
+    
+    try:
+        results = vs.similarity_search(query, k=k)
+        print(f"🔍 Retrieved {len(results)} documents for query: '{query[:50]}...'")
+        return results
+    except Exception as e:
+        print(f"❌ ChromaDB retrieval failed for query: '{query[:50]}...' - {e}")
+        return []
 
-def is_chroma_available():
-    """Check if ChromaDB is available."""
-    return _get_chroma_client() is not None
+def get_document_count():
+    """Get the number of documents in the ChromaDB store."""
+    try:
+        vs = get_vectorstore()
+        if vs is None:
+            return 0
+        
+        # Try to get count from the underlying collection
+        if hasattr(vs, '_collection') and hasattr(vs._collection, 'count'):
+            return vs._collection.count()
+        
+        # Fallback: try to get count from langchain interface
+        if hasattr(vs, 'similarity_search'):
+            # This is a rough estimate - try a broad search
+            try:
+                results = vs.similarity_search("", k=1000)  # Get up to 1000 docs
+                return len(results)
+            except:
+                return 0
+        
+        return 0
+    except Exception as e:
+        print(f"⚠️  Error getting document count: {e}")
+        return 0
+
+def ingest_seed_corpus():
+    """Ingest seed data from SEED_DATA_DIR into ChromaDB."""
+    seed_dir = os.getenv("SEED_DATA_DIR", "./data/seed")
+    
+    if not os.path.exists(seed_dir):
+        print(f"⚠️  Seed data directory not found: {seed_dir}")
+        return False
+    
+    try:
+        # Load documents from seed directory
+        docs = load_docs(seed_dir)
+        if not docs:
+            print(f"⚠️  No documents found in seed directory: {seed_dir}")
+            return False
+        
+        print(f"📚 Loading {len(docs)} documents from {seed_dir}")
+        
+        # Split documents into chunks
+        splitter = _splitter()
+        chunks = splitter.split_documents(docs)
+        print(f"📝 Split into {len(chunks)} chunks")
+        
+        # Create vector store and persist
+        vs = Chroma.from_documents(chunks, _get_embedder(), persist_directory=CHROMA_DIR)
+        vs.persist()
+        
+        print(f"✅ Seed corpus ingested successfully")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Seed corpus ingestion failed: {e}")
+        return False
+
+def initialize_chroma_with_auto_ingest():
+    """Initialize ChromaDB with auto-ingestion if enabled and store is empty."""
+    # Check if auto-ingest is enabled
+    auto_ingest = os.getenv("CHROMA_AUTO_INGEST", "0").strip() == "1"
+    
+    # Get initial document count
+    doc_count = get_document_count()
+    print(f"📊 Chroma doc count: {doc_count}")
+    
+    # If store is empty and auto-ingest is enabled, run ingestion
+    if doc_count == 0 and auto_ingest:
+        print("🔄 Auto-ingesting seed corpus (CHROMA_AUTO_INGEST=1)")
+        if ingest_seed_corpus():
+            # Re-open vector store and get new count
+            global _chroma_client
+            _chroma_client = None  # Force re-initialization
+            new_count = get_document_count()
+            print(f"📊 Chroma doc count after auto-ingest: {new_count}")
+        else:
+            print("⚠️  Auto-ingest failed, continuing with empty store")
+    
+    return doc_count

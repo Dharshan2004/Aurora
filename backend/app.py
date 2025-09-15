@@ -65,6 +65,10 @@ def startup():
     # Initialize database (this will log dialect info)
     init_db()
     
+    # Initialize ChromaDB with auto-ingestion
+    from rag import initialize_chroma_with_auto_ingest
+    initialize_chroma_with_auto_ingest()
+    
     print("✅ Aurora Backend startup complete")
 
 @app.get("/healthz")
@@ -182,6 +186,41 @@ def audit_export():
             {"ts": r.ts, "trace_id": r.trace_id, "agent_id": r.agent_id, "answer_preview": r.answer_preview, "latency_ms": r.latency_ms}
             for r in rows
         ]
+
+@app.post("/admin/reindex")
+def admin_reindex():
+    """Admin endpoint to rebuild ChromaDB vectors on demand."""
+    # Check if admin access is enabled
+    if os.getenv("ALLOW_ADMIN", "0").strip() != "1":
+        raise HTTPException(status_code=403, detail="Admin access not enabled")
+    
+    try:
+        from rag import ingest_seed_corpus, get_document_count, CHROMA_DIR
+        import shutil
+        
+        # Clear the current store (not the directory)
+        if os.path.exists(CHROMA_DIR):
+            shutil.rmtree(CHROMA_DIR, ignore_errors=True)
+            os.makedirs(CHROMA_DIR, exist_ok=True)
+        
+        # Force re-initialization of ChromaDB client
+        from rag import _chroma_client
+        globals()['_chroma_client'] = None
+        
+        # Run ingestion
+        success = ingest_seed_corpus()
+        
+        # Get new document count
+        doc_count = get_document_count()
+        
+        return {
+            "success": success,
+            "doc_count": doc_count,
+            "message": f"Reindex completed. Document count: {doc_count}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Reindex failed: {str(e)}")
 
 def stream_response(text: str):
     """Stream text token by token for better UX"""
