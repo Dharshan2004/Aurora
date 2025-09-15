@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Any, Dict
 import uuid, time, orjson, json
 from sqlalchemy import text, select, func
+import os
 
 from settings import settings
 from audit_store import init_db, now_ts, hmac_sha256, preview
