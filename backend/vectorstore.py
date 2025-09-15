@@ -174,47 +174,51 @@ def vector_count(store: Qdrant) -> int:
     """
     try:
         if store is None:
+            print("⚠️  Store is None, returning 0")
             return 0
+        
+        print(f"🔍 Getting count for collection: {store.collection_name}")
         
         # Get collection info
         collection_info = store.client.get_collection(store.collection_name)
+        print(f"🔍 Collection info type: {type(collection_info)}")
+        print(f"🔍 Collection info attributes: {[attr for attr in dir(collection_info) if not attr.startswith('_')]}")
         
         # Try different attributes for count
         if hasattr(collection_info, 'vectors_count'):
             count = collection_info.vectors_count
-            print(f"Vector count (vectors_count): {count}")
+            print(f"✅ Vector count (vectors_count): {count}")
             return count
         elif hasattr(collection_info, 'points_count'):
             count = collection_info.points_count
-            print(f"Vector count (points_count): {count}")
+            print(f"✅ Vector count (points_count): {count}")
             return count
         elif hasattr(collection_info, 'status') and hasattr(collection_info.status, 'vectors_count'):
             count = collection_info.status.vectors_count
-            print(f"Vector count (status.vectors_count): {count}")
+            print(f"✅ Vector count (status.vectors_count): {count}")
             return count
         else:
-            print(f"⚠️  Collection info attributes: {dir(collection_info)}")
-            return 0
-        
-    except Exception as e:
-        print(f"⚠️  Could not get vector count: {e}")
-        # Try alternative method using search
-        try:
-            if hasattr(store, 'client') and hasattr(store, 'collection_name'):
-                # Try to search for all points to get count
+            print(f"⚠️  No count attribute found, trying scroll method")
+            # Try scroll method
+            try:
                 result = store.client.scroll(
                     collection_name=store.collection_name,
-                    limit=10000  # Large limit to get all points
+                    limit=10000
                 )
                 if result and hasattr(result, 'points'):
                     count = len(result.points)
-                    print(f"Vector count (scroll method): {count}")
+                    print(f"✅ Vector count (scroll method): {count}")
                     return count
-        except Exception as e2:
-            print(f"⚠️  Alternative count method failed: {e2}")
+            except Exception as e3:
+                print(f"⚠️  Scroll method failed: {e3}")
+            
+            print(f"⚠️  All count methods failed, returning 0")
+            return 0
         
-        # Final fallback - return 0 if we can't get count
-        print("⚠️  Using fallback count: 0")
+    except Exception as e:
+        print(f"❌ Could not get vector count: {e}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 def ensure_embedding_function(store: Qdrant, embedding) -> Qdrant:

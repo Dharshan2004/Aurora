@@ -112,6 +112,46 @@ async def options_handler(path: str):
     """Handle CORS preflight requests"""
     return {"message": "CORS preflight handled"}
 
+@app.get("/debug/vectorstore")
+def debug_vectorstore():
+    """Debug endpoint to check vector store status."""
+    try:
+        from rag import _get_vectorstore, get_document_count
+        from vectorstore import vector_count
+        
+        # Get vector store
+        vs = _get_vectorstore()
+        
+        if vs is None:
+            return {
+                "status": "error",
+                "message": "Vector store is None",
+                "vectorstore_available": False
+            }
+        
+        # Get count using different methods
+        count_method1 = get_document_count()
+        count_method2 = vector_count(vs)
+        
+        return {
+            "status": "ok",
+            "vectorstore_available": True,
+            "collection_name": getattr(vs, 'collection_name', 'unknown'),
+            "client_type": type(vs.client).__name__ if hasattr(vs, 'client') else 'unknown',
+            "count_method1": count_method1,
+            "count_method2": count_method2,
+            "embedding_function_set": hasattr(vs, 'embedding_function') and vs.embedding_function is not None,
+            "embeddings_set": hasattr(vs, 'embeddings') and vs.embeddings is not None,
+            "vectorstore_attributes": [attr for attr in dir(vs) if not attr.startswith('_')]
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e),
+            "vectorstore_available": False
+        }
+
 @app.get("/debug/env")
 def debug_env():
     """Debug endpoint to check environment variables."""
