@@ -62,52 +62,28 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
         
         client = QdrantClient(**client_kwargs)
         
-        # Initialize vector store
-        try:
-            vector_store = Qdrant(
-                client=client,
-                collection_name=collection_name,
-                embedding_function=embedding
-            )
-            print("✅ Initialized with 'embedding_function' parameter")
-        except Exception as e:
-            print(f"⚠️  First attempt failed: {e}")
-            # Try alternative parameter name
+        # Initialize vector store with multiple attempts
+        vector_store = None
+        
+        # Try different initialization methods
+        init_methods = [
+            ("embedding_function", lambda: Qdrant(client=client, collection_name=collection_name, embedding_function=embedding)),
+            ("embeddings", lambda: Qdrant(client=client, collection_name=collection_name, embeddings=embedding)),
+            ("embedding", lambda: Qdrant(client=client, collection_name=collection_name, embedding=embedding)),
+        ]
+        
+        for method_name, init_func in init_methods:
             try:
-                vector_store = Qdrant(
-                    client=client,
-                    collection_name=collection_name,
-                    embeddings=embedding
-                )
-                print("✅ Used 'embeddings' parameter")
-            except Exception as e2:
-                print(f"⚠️  Second attempt failed: {e2}")
-                # Try with embedding parameter
-                try:
-                    vector_store = Qdrant(
-                        client=client,
-                        collection_name=collection_name,
-                        embedding=embedding
-                    )
-                    print("✅ Used 'embedding' parameter")
-                except Exception as e3:
-                    print(f"⚠️  Third attempt failed: {e3}")
-                    # Try without embedding parameter and set it later
-                    try:
-                        vector_store = Qdrant(
-                            client=client,
-                            collection_name=collection_name
-                        )
-                        print("✅ Initialized without embedding parameter")
-                        # Try to set embedding function after initialization
-                        try:
-                            vector_store._embedding_function = embedding
-                            print("✅ Set _embedding_function attribute")
-                        except Exception as e4:
-                            print(f"⚠️  Could not set _embedding_function: {e4}")
-                    except Exception as e5:
-                        print(f"❌ All initialization attempts failed: {e5}")
-                        return None
+                vector_store = init_func()
+                print(f"✅ Initialized with '{method_name}' parameter")
+                break
+            except Exception as e:
+                print(f"⚠️  {method_name} method failed: {e}")
+                continue
+        
+        if vector_store is None:
+            print("❌ All initialization methods failed")
+            return None
         
         # Ensure collection exists
         try:
@@ -149,12 +125,38 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
         print(f"Vector store: qdrant • collection={collection_name}")
         
         # Verify embedding function is properly set
+        embedding_verified = False
         if hasattr(vector_store, 'embedding_function') and vector_store.embedding_function is not None:
             print("✅ Embedding function properly set")
+            embedding_verified = True
         elif hasattr(vector_store, 'embeddings') and vector_store.embeddings is not None:
             print("✅ Embeddings properly set")
-        else:
-            print("⚠️  Warning: Embedding function may not be properly set")
+            embedding_verified = True
+        
+        if not embedding_verified:
+            print("⚠️  Warning: Embedding function not properly set, trying to fix...")
+            # Try to manually set the embedding function
+            try:
+                if hasattr(vector_store, 'embeddings'):
+                    vector_store.embeddings = embedding
+                    print("✅ Manually set embeddings attribute")
+                    embedding_verified = True
+                elif hasattr(vector_store, 'embedding_function'):
+                    vector_store.embedding_function = embedding
+                    print("✅ Manually set embedding_function attribute")
+                    embedding_verified = True
+            except Exception as e:
+                print(f"⚠️  Could not manually set embedding function: {e}")
+        
+        if not embedding_verified:
+            print("❌ CRITICAL: Embedding function could not be set - vector store will not work properly")
+        
+        # Test embedding function
+        try:
+            test_embedding = embedding.embed_query("test")
+            print(f"✅ Embedding function test successful, dimension: {len(test_embedding)}")
+        except Exception as e:
+            print(f"⚠️  Embedding function test failed: {e}")
         
         return vector_store
         
