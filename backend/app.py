@@ -209,6 +209,36 @@ def audit_export():
             for r in rows
         ]
 
+@app.post("/admin/ingest")
+def admin_ingest():
+    """Admin endpoint to manually trigger data ingestion."""
+    # Check if admin access is enabled
+    if os.getenv("ALLOW_ADMIN", "0").strip() != "1":
+        raise HTTPException(status_code=403, detail="Admin access not enabled")
+    
+    try:
+        from rag import ingest_data_corpus, get_document_count
+        
+        # Get count before ingestion
+        count_before = get_document_count()
+        
+        # Run ingestion
+        success = ingest_data_corpus()
+        
+        # Get count after ingestion
+        count_after = get_document_count()
+        
+        return {
+            "success": success,
+            "count_before": count_before,
+            "count_after": count_after,
+            "documents_added": count_after - count_before if count_after and count_before else "unknown",
+            "message": f"Ingestion completed. Documents: {count_before} → {count_after}"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
+
 @app.post("/admin/reindex")
 def admin_reindex():
     """Admin endpoint to rebuild vector store on demand."""

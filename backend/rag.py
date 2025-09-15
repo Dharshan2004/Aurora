@@ -131,6 +131,9 @@ def ingest_data_corpus():
     """Ingest all data from data directory into vector store."""
     data_dir = os.getenv("SEED_DATA_DIR", "./data")
     
+    print(f"🔍 Checking data directory: {data_dir}")
+    print(f"🔍 Directory exists: {os.path.exists(data_dir)}")
+    
     if not os.path.exists(data_dir):
         print(f"⚠️  Data directory not found: {data_dir}")
         return False
@@ -138,6 +141,8 @@ def ingest_data_corpus():
     try:
         # Load documents from data directory
         docs = load_docs(data_dir)
+        print(f"🔍 Found {len(docs)} documents in {data_dir}")
+        
         if not docs:
             print(f"⚠️  No documents found in data directory: {data_dir}")
             return False
@@ -159,6 +164,8 @@ def ingest_data_corpus():
         texts = [chunk.page_content for chunk in chunks]
         metadatas = [chunk.metadata for chunk in chunks]
         
+        print(f"🔍 About to add {len(texts)} texts to vector store")
+        
         # Add documents to the vector store
         add_texts(vs, texts, metadatas)
         
@@ -167,6 +174,8 @@ def ingest_data_corpus():
         
     except Exception as e:
         print(f"❌ Data corpus ingestion failed: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 def initialize_vectorstore_with_auto_ingest():
