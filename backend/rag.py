@@ -2,22 +2,25 @@ from pathlib import Path
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from vectorstore import init_vector_store, vector_count, add_texts, is_qdrant_available, ensure_embedding_function
+from vectorstore import init_vector_store, vector_count, add_texts, is_qdrant_available
 import os
 import time
 
-EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# Read EMBED_MODEL from environment with default
+EMBED_MODEL = os.getenv("EMBED_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
 # Global state
 _vectorstore = None
-_embedder = None
+_embeddings = None
 _vector_ok = False
 
-def _get_embedder():
-    global _embedder
-    if _embedder is None:
-        _embedder = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
-    return _embedder
+def _get_embeddings():
+    """Get or create the embeddings instance."""
+    global _embeddings
+    if _embeddings is None:
+        _embeddings = HuggingFaceEmbeddings(model_name=EMBED_MODEL)
+        print(f"Embedding model: {EMBED_MODEL}")
+    return _embeddings
 
 def _load_one(path: Path):
     """Load a single document based on file extension."""
@@ -47,13 +50,8 @@ def _get_vectorstore():
     global _vectorstore, _vector_ok
     
     if _vectorstore is None:
-        embedder = _get_embedder()
-        _vectorstore = init_vector_store(embedder)
-        
-        # Ensure embedding function is properly set
-        if _vectorstore is not None:
-            _vectorstore = ensure_embedding_function(_vectorstore, embedder)
-        
+        embeddings = _get_embeddings()
+        _vectorstore = init_vector_store(embeddings)
         _vector_ok = _vectorstore is not None
     
     return _vectorstore
@@ -106,7 +104,7 @@ def retrieve(query: str, k: int = None):
         return []
     
     try:
-        # Use similarity_search directly instead of retriever to avoid embedding issues
+        # Use similarity_search directly
         results = vs.similarity_search(query, k=k)
         print(f"🔍 Retrieved {len(results)} documents for query: '{query[:50]}...'")
         return results
@@ -180,27 +178,28 @@ def ingest_data_corpus():
 
 def initialize_vectorstore_with_auto_ingest():
     """Initialize vector store with auto-ingestion if enabled and store is empty."""
-    # Test environment variables first
-    from vectorstore import test_environment
-    test_environment()
-    
     # Check if auto-ingest is enabled
     auto_ingest = os.getenv("AUTO_INGEST", "0").strip() == "1"
     
+    # Initialize vector store
+    embeddings = _get_embeddings()
+    store = init_vector_store(embeddings)
+    
+    if store is None:
+        print("❌ Failed to initialize vector store")
+        return
+    
     # Get initial document count
-    doc_count = get_document_count()
-    print(f"📊 Vector doc count: {doc_count}")
+    n = vector_count(store)
+    print(f"Vector doc count: {n}")
     
     # If store is empty and auto-ingest is enabled, run ingestion
-    # Handle case where doc_count might be None
-    if (doc_count == 0 or doc_count is None) and auto_ingest:
+    if n == 0 and auto_ingest:
         print("🔄 Auto-ingesting data corpus (AUTO_INGEST=1)")
         if ingest_data_corpus():
-            # Re-open vector store and get new count
-            global _vectorstore
-            _vectorstore = None  # Force re-initialization
-            new_count = get_document_count()
-            print(f"📊 Vector doc count after auto-ingest: {new_count}")
+            # Recompute and log the new count
+            new_count = vector_count(store)
+            print(f"Vector doc count: {new_count}")
         else:
             print("⚠️  Auto-ingest failed, continuing with empty store")
 
