@@ -58,16 +58,12 @@ def startup():
     """Application startup with logging"""
     print("🚀 Aurora Backend starting up...")
     
-    # Log ChromaDB directory
-    from rag import CHROMA_DIR
-    print(f"📁 ChromaDB directory: {CHROMA_DIR}")
-    
     # Initialize database (this will log dialect info)
     init_db()
     
-    # Initialize ChromaDB with auto-ingestion
-    from rag import initialize_chroma_with_auto_ingest
-    initialize_chroma_with_auto_ingest()
+    # Initialize vector store with auto-ingestion
+    from rag import initialize_vectorstore_with_auto_ingest
+    initialize_vectorstore_with_auto_ingest()
     
     print("✅ Aurora Backend startup complete")
 
@@ -89,25 +85,24 @@ def healthz():
             db_status = f"error: {str(e)}"
             print(f"Database connection error: {e}")
     
-    # Check ChromaDB status
+    # Check vector store status
     try:
-        from rag import is_chroma_available, get_document_count, CHROMA_DIR
-        chroma_ok = is_chroma_available()
-        chroma_docs = get_document_count() if chroma_ok else 0
-        chroma_path = CHROMA_DIR
+        from rag import get_vectorstore_info
+        vector_info = get_vectorstore_info()
     except Exception as e:
-        print(f"ChromaDB check error: {e}")
-        chroma_ok = False
-        chroma_docs = 0
-        chroma_path = "unknown"
+        print(f"Vector store check error: {e}")
+        vector_info = {
+            "vector_store": "qdrant",
+            "vector_ok": False,
+            "vector_docs": 0,
+            "vector_collection": "unknown"
+        }
     
     return {
         "ok": True, 
         "env": settings.ENV,
         "database": db_status,
-        "chroma_ok": chroma_ok,
-        "chroma_path": chroma_path,
-        "chroma_docs": chroma_docs,
+        **vector_info,
         "timestamp": time.time()
     }
 
@@ -195,21 +190,15 @@ def audit_export():
 
 @app.post("/admin/reindex")
 def admin_reindex():
-    """Admin endpoint to rebuild ChromaDB vectors on demand."""
+    """Admin endpoint to rebuild vector store on demand."""
     # Check if admin access is enabled
     if os.getenv("ALLOW_ADMIN", "0").strip() != "1":
         raise HTTPException(status_code=403, detail="Admin access not enabled")
     
     try:
-        from rag import ingest_seed_corpus, get_document_count, CHROMA_DIR
-        import shutil
+        from rag import ingest_seed_corpus, get_document_count
         
-        # Clear the current store (not the directory)
-        if os.path.exists(CHROMA_DIR):
-            shutil.rmtree(CHROMA_DIR, ignore_errors=True)
-            os.makedirs(CHROMA_DIR, exist_ok=True)
-        
-        # Force re-initialization of ChromaDB vectorstore
+        # Force re-initialization of vector store
         from rag import _vectorstore
         globals()['_vectorstore'] = None
         
