@@ -34,13 +34,19 @@ AI-powered backend for the Aurora learning management system with personalized g
 
 Required environment variables (set in Space settings):
 
-- `AURORA_DB_URL`: MySQL connection string
-- `MYSQL_SSL_CA_PATH`: SSL certificate path (`/app/ca.pem`)
+- `AURORA_DB_URL`: MySQL connection string (required)
+- `MYSQL_SSL_CA_PATH`: SSL certificate path (default: `/app/ca.pem`)
 - `OPENAI_API_KEY`: OpenAI API key for AI features
 - `AURORA_HMAC_KEY`: Secure key for integrity checks
 - `AURORA_ENV`: Environment (`production`)
 - `AURORA_INDEX_VERSION`: Index version (`v1`)
-- `CHROMA_DIR`: ChromaDB directory (`./chroma_store`)
+
+### ChromaDB Configuration
+
+- `CHROMA_DIR`: ChromaDB persistence directory (optional)
+  - **Recommended**: Set to `/tmp/chroma_store` in Space vars for zero-friction demo
+  - **Fallback**: If not set or not writable, automatically falls back to `/tmp/chroma_store`
+  - **Docker**: If using `/data/chroma_store`, Dockerfile creates & owns the directory
 
 ## Deployment
 

@@ -31,14 +31,14 @@ RUN find . -name "*.db" -type f -delete && echo "Cleaned up any .db files"
 RUN if [ ! -f ca.pem ]; then echo "WARNING: ca.pem not found! Please ensure it's in the backend directory."; fi
 
 # Create writable directories for ChromaDB and other persistent data
-RUN mkdir -p /data/chroma_store && \
-    echo "Created /data/chroma_store directory"
+RUN mkdir -p /data/chroma_store /tmp/chroma_store && \
+    echo "Created ChromaDB directories: /data/chroma_store and /tmp/chroma_store"
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app
 
-# Set ownership of app directory and data directory
-RUN chown -R app:app /app /data
+# Set ownership of app directory and data directories
+RUN chown -R app:app /app /data /tmp/chroma_store
 
 # Build ChromaDB vector store from data directory
 RUN echo "Building ChromaDB vector store..." && \
