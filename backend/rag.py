@@ -183,7 +183,8 @@ def initialize_vectorstore_with_auto_ingest():
     print(f"📊 Vector doc count: {doc_count}")
     
     # If store is empty and auto-ingest is enabled, run ingestion
-    if doc_count == 0 and auto_ingest:
+    # Handle case where doc_count might be None
+    if (doc_count == 0 or doc_count is None) and auto_ingest:
         print("🔄 Auto-ingesting data corpus (AUTO_INGEST=1)")
         if ingest_data_corpus():
             # Re-open vector store and get new count
