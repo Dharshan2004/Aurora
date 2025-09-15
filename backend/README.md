@@ -76,6 +76,27 @@ Required environment variables (set in Space settings):
 - Admin reindex endpoint for rebuilding vectors on demand
 - Retrieval telemetry for debugging empty results
 
+### ChromaDB Recovery
+
+**Environment variables for robust persistence:**
+- `CHROMA_DIR=/tmp/chroma_store` - ChromaDB persistence directory (single source of truth)
+- `CHROMA_FORCE_CLEAN=1` - Force clean directory if readonly errors occur
+- `CHROMA_RESET=1` - Explicitly wipe and rebuild store (use deliberately)
+- `CHROMA_AUTO_INGEST=1` - Auto-ingest seed data if store is empty
+
+**Recovery features:**
+- Automatic fallback to `/tmp/chroma_store/<timestamp>` if configured path fails
+- Self-healing from readonly database errors
+- Modern duckdb+parquet backend (avoids SQLite issues)
+- Write-probe testing before initialization
+- Force clean option for stubborn readonly issues
+
+**Notes:**
+- ChromaDB automatically recovers from readonly errors
+- Use `CHROMA_FORCE_CLEAN=1` for one deploy if you hit readonly errors
+- Use `CHROMA_RESET=1` deliberately to wipe and rebuild
+- Startup logs show resolved path, backend type, and writability status
+
 ## Deployment
 
 This Space is automatically deployed via GitHub Actions when backend files are updated. The Dockerfile builds the FastAPI application with all dependencies and initializes the ChromaDB vector store.

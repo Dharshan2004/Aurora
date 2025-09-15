@@ -91,17 +91,23 @@ def healthz():
     
     # Check ChromaDB status
     try:
-        from rag import is_chroma_available
+        from rag import is_chroma_available, get_document_count, CHROMA_DIR
         chroma_ok = is_chroma_available()
+        chroma_docs = get_document_count() if chroma_ok else 0
+        chroma_path = CHROMA_DIR
     except Exception as e:
         print(f"ChromaDB check error: {e}")
         chroma_ok = False
+        chroma_docs = 0
+        chroma_path = "unknown"
     
     return {
         "ok": True, 
         "env": settings.ENV,
         "database": db_status,
         "chroma_ok": chroma_ok,
+        "chroma_path": chroma_path,
+        "chroma_docs": chroma_docs,
         "timestamp": time.time()
     }
 

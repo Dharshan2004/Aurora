@@ -12,7 +12,7 @@ EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 def _get_chroma_dir():
     """Get ChromaDB directory with fallback to writable path."""
-    # Read CHROMA_DIR from environment
+    # Single source of truth for Chroma path
     chroma_dir = os.getenv("CHROMA_DIR", "/tmp/chroma_store")
     
     # Check for reset flag - only reset if explicitly set to 1
@@ -72,6 +72,7 @@ def _get_chroma_dir():
 CHROMA_DIR = _get_chroma_dir()
 _chroma_client = None
 _embedder = None
+_chroma_settings = None
 
 def _get_embedder():
     global _embedder
@@ -95,18 +96,72 @@ def load_docs(data_dir: str):
 def _splitter():
     return RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100, separators=["\n\n","\n",". "," "])
 
-def _get_chroma_client():
-    """Get ChromaDB client with proper error handling."""
-    global _chroma_client
-    if _chroma_client is None:
+def _get_chroma_settings():
+    """Get ChromaDB settings with modern backend."""
+    global _chroma_settings
+    if _chroma_settings is None:
         try:
-            import chromadb
-            _chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
-            print(f"✅ ChromaDB client initialized successfully")
-            return _chroma_client
+            import chromadb.config
+            _chroma_settings = chromadb.config.Settings(
+                chroma_db_impl="duckdb+parquet",
+                anonymized_telemetry=False
+            )
+            print(f"✅ Chroma backend: duckdb+parquet")
         except Exception as e:
-            print(f"❌ ChromaDB client init failed: {e}")
-            return None
+            print(f"⚠️  Could not set ChromaDB settings: {e}")
+            _chroma_settings = None
+    return _chroma_settings
+
+def _get_chroma_client():
+    """Get ChromaDB client with robust error handling and self-healing."""
+    global _chroma_client, CHROMA_DIR
+    
+    if _chroma_client is None:
+        settings = _get_chroma_settings()
+        
+        def _try_init_chroma(path):
+            """Try to initialize ChromaDB client with given path."""
+            try:
+                import chromadb
+                if settings:
+                    client = chromadb.PersistentClient(path=path, settings=settings)
+                else:
+                    client = chromadb.PersistentClient(path=path)
+                print(f"✅ ChromaDB client initialized successfully")
+                return client
+            except Exception as e:
+                error_msg = str(e).lower()
+                if "readonly database" in error_msg or "read-only" in error_msg:
+                    print(f"⚠️  Readonly database error: {e}")
+                    return None
+                else:
+                    print(f"❌ ChromaDB client init failed: {e}")
+                    return None
+        
+        # Try to initialize with current path
+        _chroma_client = _try_init_chroma(CHROMA_DIR)
+        
+        # If readonly error, try force clean
+        if _chroma_client is None:
+            force_clean = os.getenv("CHROMA_FORCE_CLEAN", "").lower() in {"1", "true"}
+            if force_clean:
+                print(f"🔄 Force cleaning ChromaDB directory: {CHROMA_DIR}")
+                try:
+                    if os.path.exists(CHROMA_DIR):
+                        shutil.rmtree(CHROMA_DIR, ignore_errors=True)
+                    os.makedirs(CHROMA_DIR, exist_ok=True)
+                    _chroma_client = _try_init_chroma(CHROMA_DIR)
+                except Exception as e:
+                    print(f"⚠️  Force clean failed: {e}")
+            
+            # If still failing, fallback to timestamped directory
+            if _chroma_client is None:
+                fallback_dir = f"/tmp/chroma_store/{int(time.time())}"
+                print(f"🔄 Falling back to: {fallback_dir}")
+                os.makedirs(fallback_dir, exist_ok=True)
+                CHROMA_DIR = fallback_dir  # Update global path
+                _chroma_client = _try_init_chroma(fallback_dir)
+    
     return _chroma_client
 
 def build_vectorstore(data_dir: str):
@@ -119,7 +174,19 @@ def build_vectorstore(data_dir: str):
             
         splitter = _splitter()
         chunks = splitter.split_documents(load_docs(data_dir))
-        vs = Chroma.from_documents(chunks, _get_embedder(), persist_directory=CHROMA_DIR)
+        
+        # Use consistent settings for LangChain Chroma
+        settings = _get_chroma_settings()
+        if settings:
+            vs = Chroma.from_documents(
+                chunks, 
+                _get_embedder(), 
+                persist_directory=CHROMA_DIR,
+                client_settings=settings
+            )
+        else:
+            vs = Chroma.from_documents(chunks, _get_embedder(), persist_directory=CHROMA_DIR)
+        
         vs.persist()
         print(f"✅ ChromaDB vector store built successfully")
         return vs
@@ -134,8 +201,18 @@ def get_vectorstore():
         if client is None:
             print("⚠️  ChromaDB client not available - returning None")
             return None
-            
-        vs = Chroma(persist_directory=CHROMA_DIR, embedding_function=_get_embedder())
+        
+        # Use consistent settings for LangChain Chroma
+        settings = _get_chroma_settings()
+        if settings:
+            vs = Chroma(
+                persist_directory=CHROMA_DIR, 
+                embedding_function=_get_embedder(),
+                client_settings=settings
+            )
+        else:
+            vs = Chroma(persist_directory=CHROMA_DIR, embedding_function=_get_embedder())
+        
         print(f"✅ ChromaDB vector store loaded successfully")
         return vs
     except Exception as e:
