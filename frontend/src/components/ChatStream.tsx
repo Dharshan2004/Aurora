@@ -31,6 +31,9 @@ export default function ChatStream({
     setOutput(""); // reset for each request
     setStreaming(true);
 
+    console.log(`🌐 Frontend: Sending request to ${endpoint}`);
+    console.log(`🌐 Frontend: Message: "${msg}"`);
+
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -43,25 +46,47 @@ export default function ChatStream({
         signal: controller.signal,
       });
 
+      console.log(`🌐 Frontend: Response status: ${res.status}`);
+      console.log(`🌐 Frontend: Response headers:`, Object.fromEntries(res.headers.entries()));
+
       if (!res.ok || !res.body) {
         const text = await res.text().catch(() => "");
+        console.log(`🌐 Frontend: Error response: ${text}`);
         throw new Error(text || `Request failed: ${res.status} ${res.statusText}`);
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
 
+      console.log("🌐 Frontend: Starting to read stream");
+      let totalChunks = 0;
+      let totalContent = "";
+
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
+        if (done) {
+          console.log(`🌐 Frontend: Stream complete. Total chunks: ${totalChunks}, Total content length: ${totalContent.length}`);
+          console.log(`🌐 Frontend: Final content preview: ${totalContent.substring(0, 200)}...`);
+          break;
+        }
         const chunk = decoder.decode(value, { stream: true });
-        setOutput((prev) => prev + chunk);
+        totalChunks++;
+        totalContent += chunk;
+        console.log(`🌐 Frontend: Chunk ${totalChunks}: "${chunk}"`);
+        setOutput((prev) => {
+          const newOutput = prev + chunk;
+          console.log(`🌐 Frontend: Updated output length: ${newOutput.length}`);
+          return newOutput;
+        });
       }
     } catch (e: unknown) {
+      console.log(`🌐 Frontend: Error occurred:`, e);
       if (e instanceof Error && e.name !== "AbortError") {
+        console.log(`🌐 Frontend: Setting error: ${e.message}`);
         setError(e.message ?? "Something went wrong");
       }
     } finally {
+      console.log(`🌐 Frontend: Request completed. Streaming: ${streaming}`);
       setStreaming(false);
       abortRef.current = null;
     }
