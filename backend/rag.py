@@ -4,7 +4,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from chromadb import PersistentClient
-from chromadb.config import Settings
 import os
 import tempfile
 import time
@@ -51,12 +50,9 @@ def _get_chroma_client():
         def _try_init_chroma(path):
             """Try to initialize ChromaDB client with given path."""
             try:
-                # Create client with duckdb+parquet backend
-                client = PersistentClient(
-                    path=path,
-                    settings=Settings(chroma_db_impl="duckdb+parquet", anonymized_telemetry=False)
-                )
-                print(f"Chroma backend: duckdb+parquet")
+                # Create client without deprecated settings
+                client = PersistentClient(path=path)
+                print(f"Chroma backend: new-client")
                 print(f"Chroma dir: {path}")
                 return client
             except Exception as e:
@@ -108,9 +104,10 @@ def build_vectorstore(data_dir: str):
         splitter = _splitter()
         chunks = splitter.split_documents(load_docs(data_dir))
         
-        # Use new client pattern without persist_directory
+        # Use new client pattern without persist_directory or client_settings
         collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        vs = Chroma(client=client, collection_name=collection_name, embedding_function=_get_embedder())
+        embedder = _get_embedder()
+        vs = Chroma(client=client, collection_name=collection_name, embedding_function=embedder)
         
         # Add documents to the collection
         vs.add_documents(chunks)
@@ -128,9 +125,10 @@ def get_vectorstore():
             print("⚠️  ChromaDB client not available - returning None")
             return None
         
-        # Use new client pattern without persist_directory
+        # Use new client pattern without persist_directory or client_settings
         collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        vs = Chroma(client=client, collection_name=collection_name, embedding_function=_get_embedder())
+        embedder = _get_embedder()
+        vs = Chroma(client=client, collection_name=collection_name, embedding_function=embedder)
         
         print(f"ChromaDB vector store loaded successfully")
         return vs
@@ -199,7 +197,8 @@ def ingest_seed_corpus():
             return False
         
         collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        vs = Chroma(client=client, collection_name=collection_name, embedding_function=_get_embedder())
+        embedder = _get_embedder()
+        vs = Chroma(client=client, collection_name=collection_name, embedding_function=embedder)
         
         # Add documents to the collection
         vs.add_documents(chunks)
