@@ -45,8 +45,22 @@ Required environment variables (set in Space settings):
 
 - `CHROMA_DIR`: ChromaDB persistence directory (optional)
   - **Recommended**: Set to `/tmp/chroma_store` in Space vars for zero-friction demo
-  - **Fallback**: If not set or not writable, automatically falls back to `/tmp/chroma_store`
+  - **Fallback**: If not set or not writable, automatically falls back to `/tmp/chroma_store/<timestamp>`
   - **Docker**: If using `/data/chroma_store`, Dockerfile creates & owns the directory
+- `CHROMA_RESET`: Reset ChromaDB store on startup (optional)
+  - Set to `1` or `true` to clear the store for a clean demo
+  - Use once if permissions or stale locks occur
+
+### ChromaDB Storage
+
+**Recommended environment variables:**
+- `CHROMA_DIR=/tmp/chroma_store` - Use ephemeral storage for demos
+- `CHROMA_RESET=1` - Clear store once if permissions or stale locks occur
+
+**Notes:**
+- `/tmp` is ephemeral across rebuilds (fine for demos)
+- ChromaDB automatically falls back to writable directories if configured path fails
+- Startup logs show the final chosen directory and writability status
 
 ## Deployment
 

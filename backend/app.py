@@ -85,10 +85,19 @@ def healthz():
             db_status = f"error: {str(e)}"
             print(f"Database connection error: {e}")
     
+    # Check ChromaDB status
+    try:
+        from rag import is_chroma_available
+        chroma_ok = is_chroma_available()
+    except Exception as e:
+        print(f"ChromaDB check error: {e}")
+        chroma_ok = False
+    
     return {
         "ok": True, 
         "env": settings.ENV,
         "database": db_status,
+        "chroma_ok": chroma_ok,
         "timestamp": time.time()
     }
 

@@ -32,13 +32,14 @@ RUN if [ ! -f ca.pem ]; then echo "WARNING: ca.pem not found! Please ensure it's
 
 # Create writable directories for ChromaDB and other persistent data
 RUN mkdir -p /data/chroma_store /tmp/chroma_store && \
-    echo "Created ChromaDB directories: /data/chroma_store and /tmp/chroma_store"
+    chmod -R 777 /data/chroma_store /tmp/chroma_store && \
+    echo "Created ChromaDB directories with full permissions: /data/chroma_store and /tmp/chroma_store"
 
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app
 
-# Set ownership of app directory and data directories
-RUN chown -R app:app /app /data /tmp/chroma_store
+# Set ownership of app directory (but not data directories to avoid permission issues)
+RUN chown -R app:app /app
 
 # Build ChromaDB vector store from data directory
 RUN echo "Building ChromaDB vector store..." && \
