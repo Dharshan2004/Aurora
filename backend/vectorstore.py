@@ -69,6 +69,7 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
                 collection_name=collection_name,
                 embedding_function=embedding
             )
+            print("✅ Initialized with 'embedding_function' parameter")
         except Exception as e:
             print(f"⚠️  First attempt failed: {e}")
             # Try alternative parameter name
@@ -81,13 +82,14 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
                 print("✅ Used 'embeddings' parameter")
             except Exception as e2:
                 print(f"⚠️  Second attempt failed: {e2}")
-                # Try without embedding parameter (will use default)
+                # Try with embedding parameter
                 try:
                     vector_store = Qdrant(
                         client=client,
-                        collection_name=collection_name
+                        collection_name=collection_name,
+                        embedding=embedding
                     )
-                    print("✅ Initialized without embedding parameter")
+                    print("✅ Used 'embedding' parameter")
                 except Exception as e3:
                     print(f"❌ All initialization attempts failed: {e3}")
                     return None
@@ -130,6 +132,15 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
             print(f"✅ Created Qdrant collection: {collection_name}")
         
         print(f"Vector store: qdrant • collection={collection_name}")
+        
+        # Verify embedding function is properly set
+        if hasattr(vector_store, 'embedding_function') and vector_store.embedding_function is not None:
+            print("✅ Embedding function properly set")
+        elif hasattr(vector_store, 'embeddings') and vector_store.embeddings is not None:
+            print("✅ Embeddings properly set")
+        else:
+            print("⚠️  Warning: Embedding function may not be properly set")
+        
         return vector_store
         
     except Exception as e:
@@ -167,10 +178,56 @@ def vector_count(store: Qdrant) -> int:
                     count = stats.vectors_count
                     print(f"Vector count (alternative): {count}")
                     return count
+                elif hasattr(stats, 'points_count'):
+                    count = stats.points_count
+                    print(f"Vector count (points): {count}")
+                    return count
         except Exception as e2:
             print(f"⚠️  Alternative count method failed: {e2}")
         
+        # Final fallback - return 0 if we can't get count
+        print("⚠️  Using fallback count: 0")
         return 0
+
+def ensure_embedding_function(store: Qdrant, embedding) -> Qdrant:
+    """
+    Ensure the vector store has a proper embedding function set.
+    
+    Args:
+        store: Qdrant vector store instance
+        embedding: Embedding function to set
+        
+    Returns:
+        Vector store with embedding function properly set
+    """
+    if store is None:
+        return None
+    
+    try:
+        # Check if embedding function is already set
+        if hasattr(store, 'embedding_function') and store.embedding_function is not None:
+            print("✅ Embedding function already set")
+            return store
+        elif hasattr(store, 'embeddings') and store.embeddings is not None:
+            print("✅ Embeddings already set")
+            return store
+        
+        # Try to set the embedding function
+        print("🔄 Setting embedding function...")
+        if hasattr(store, 'embedding_function'):
+            store.embedding_function = embedding
+            print("✅ Set embedding_function attribute")
+        elif hasattr(store, 'embeddings'):
+            store.embeddings = embedding
+            print("✅ Set embeddings attribute")
+        else:
+            print("⚠️  Could not set embedding function - attribute not found")
+        
+        return store
+        
+    except Exception as e:
+        print(f"⚠️  Error setting embedding function: {e}")
+        return store
 
 def add_texts(store: Qdrant, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None) -> None:
     """

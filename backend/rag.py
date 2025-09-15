@@ -2,7 +2,7 @@ from pathlib import Path
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
-from vectorstore import init_vector_store, vector_count, add_texts, is_qdrant_available
+from vectorstore import init_vector_store, vector_count, add_texts, is_qdrant_available, ensure_embedding_function
 import os
 import time
 
@@ -49,6 +49,11 @@ def _get_vectorstore():
     if _vectorstore is None:
         embedder = _get_embedder()
         _vectorstore = init_vector_store(embedder)
+        
+        # Ensure embedding function is properly set
+        if _vectorstore is not None:
+            _vectorstore = ensure_embedding_function(_vectorstore, embedder)
+        
         _vector_ok = _vectorstore is not None
     
     return _vectorstore
