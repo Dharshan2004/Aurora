@@ -255,6 +255,8 @@ def welcome_stream(req: StreamReq):
     """Streaming endpoint for Welcome Agent - matches frontend expectations"""
     print(f"🌐 Welcome Stream Request - Message: '{req.msg}'")
     print(f"🌐 Request details - org_id: {req.org_id}, user_id: {req.user_id}, consent: {req.consent}")
+    print(f"🌐 Request type: {type(req)}")
+    print(f"🌐 Request dict: {req.dict()}")
     
     if not req.consent:
         print("❌ Consent not provided - returning error")
@@ -270,6 +272,8 @@ def welcome_stream(req: StreamReq):
         "consent": req.consent
     }
     
+    print(f"🔄 Payload to onboarding agent: {payload}")
+    
     try:
         print("🔄 Calling onboarding agent...")
         output, meta = execute_agent("onboarding", payload)
@@ -281,6 +285,8 @@ def welcome_stream(req: StreamReq):
     except Exception as e:
         error_msg = str(e)
         print(f"❌ Error in welcome stream: {error_msg}")
+        import traceback
+        traceback.print_exc()
         def error_stream():
             yield f"Error: {error_msg}"
         return StreamingResponse(error_stream(), media_type="text/plain")

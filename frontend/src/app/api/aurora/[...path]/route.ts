@@ -10,17 +10,24 @@ const ORIGIN = process.env.FASTAPI_URL!;
  * - Avoids exposing your backend origin to the browser
  */
 async function forward(req: NextRequest, path: string[], method: string) {
+  console.log(`🌐 Frontend Proxy - Method: ${method}, Path: ${path.join("/")}`);
+  console.log(`🌐 FASTAPI_URL: ${ORIGIN}`);
+  
   if (!ORIGIN) {
+    console.log("❌ FASTAPI_URL not set");
     return new Response("FASTAPI_URL environment variable is not set in Vercel. Please set it to your HuggingFace Space URL.", { status: 500 });
   }
   
   // Check if ORIGIN is localhost (common mistake)
   if (ORIGIN.includes('localhost') || ORIGIN.includes('127.0.0.1')) {
+    console.log(`❌ FASTAPI_URL is localhost: ${ORIGIN}`);
     return new Response(`FASTAPI_URL is set to localhost (${ORIGIN}). Please set it to your HuggingFace Space URL instead.`, { status: 500 });
   }
   
   const incomingUrl = new URL(req.url);
   const target = `${ORIGIN}/${path.join("/")}${incomingUrl.search}`;
+  
+  console.log(`🌐 Proxying to: ${target}`);
 
   // Copy headers, but strip hop-by-hop
   const headers = new Headers(req.headers);
@@ -38,6 +45,8 @@ async function forward(req: NextRequest, path: string[], method: string) {
     // Add duplex option for POST/PUT requests with body
     ...(method !== "GET" && method !== "HEAD" && { duplex: "half" }),
   });
+
+  console.log(`🌐 Backend response status: ${res.status}`);
 
   // Forward status + stream body and keep most headers
   const outHeaders = new Headers(res.headers);
