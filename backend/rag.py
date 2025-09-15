@@ -50,9 +50,15 @@ def _get_vectorstore():
     global _vectorstore, _vector_ok
     
     if _vectorstore is None:
+        print("🔄 Initializing vector store...")
         embeddings = _get_embeddings()
         _vectorstore = init_vector_store(embeddings)
         _vector_ok = _vectorstore is not None
+        
+        if _vector_ok:
+            print("✅ Vector store initialized successfully")
+        else:
+            print("❌ Vector store initialization failed")
     
     return _vectorstore
 
@@ -104,12 +110,34 @@ def retrieve(query: str, k: int = None):
         return []
     
     try:
-        # Use similarity_search directly
-        results = vs.similarity_search(query, k=k)
-        print(f"🔍 Retrieved {len(results)} documents for query: '{query[:50]}...'")
+        # Debug: Check if embeddings are available
+        if hasattr(vs, 'embeddings') and vs.embeddings is not None:
+            print("✅ Vector store has embeddings available")
+        elif hasattr(vs, 'embedding_function') and vs.embedding_function is not None:
+            print("✅ Vector store has embedding_function available")
+        else:
+            print("⚠️  Vector store has no embeddings available!")
+        
+        # Try using retriever first, fallback to similarity_search
+        try:
+            retriever = vs.as_retriever(search_kwargs={"k": k})
+            results = retriever.get_relevant_documents(query)
+            print(f"🔍 Retrieved {len(results)} documents using retriever for query: '{query[:50]}...'")
+        except Exception as retriever_error:
+            print(f"⚠️  Retriever failed: {retriever_error}, trying similarity_search")
+            results = vs.similarity_search(query, k=k)
+            print(f"🔍 Retrieved {len(results)} documents using similarity_search for query: '{query[:50]}...'")
+        
+        # Debug: Print source paths for debugging
+        for i, doc in enumerate(results):
+            source = doc.metadata.get("source", "unknown")
+            print(f"  Doc {i+1}: {source}")
+        
         return results
     except Exception as e:
         print(f"❌ Vector store retrieval failed for query: '{query[:50]}...' - {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def get_document_count():
@@ -180,6 +208,7 @@ def initialize_vectorstore_with_auto_ingest():
     """Initialize vector store with auto-ingestion if enabled and store is empty."""
     # Check if auto-ingest is enabled
     auto_ingest = os.getenv("AUTO_INGEST", "0").strip() == "1"
+    print(f"🔍 Auto-ingest enabled: {auto_ingest}")
     
     # Initialize vector store
     embeddings = _get_embeddings()
@@ -202,6 +231,8 @@ def initialize_vectorstore_with_auto_ingest():
             print(f"Vector doc count: {new_count}")
         else:
             print("⚠️  Auto-ingest failed, continuing with empty store")
+    elif n > 0:
+        print(f"✅ Vector store already has {n} documents, skipping auto-ingest")
 
 def is_vectorstore_available():
     """Check if vector store is available and working."""

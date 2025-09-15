@@ -42,8 +42,14 @@ def execute(payload: Dict[str, Any]) -> Tuple[Dict, Dict]:
     docs = retrieve(q, k=8)
     
     # Filter for relevant sources
-    allowed_paths = ["data/policies", "data/handbook.md"]
+    allowed_paths = ["policies/", "handbook.md"]
     docs = [d for d in docs if any(p in d.metadata.get("source", "") for p in allowed_paths)]
+    
+    # Debug: Print filtered results
+    print(f"🔍 After filtering: {len(docs)} documents")
+    for i, doc in enumerate(docs):
+        source = doc.metadata.get("source", "unknown")
+        print(f"  Filtered Doc {i+1}: {source}")
 
     if not docs:
         ans = "I don't know from current context. Please check HR."
