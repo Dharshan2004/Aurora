@@ -1,9 +1,8 @@
 from pathlib import Path
-from langchain_community.document_loaders import TextLoader, PyPDFLoader
+from langchain.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from chromadb import PersistentClient
+from langchain.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceEmbeddings
 import os
 import tempfile
 import time
@@ -12,11 +11,12 @@ import shutil
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Single source of truth for ChromaDB path
-CHROMA_DIR = os.getenv("CHROMA_DIR", "/tmp/chroma_store")
+CHROMA_DIR = os.getenv("CHROMA_DIR", "/data/chroma_store")
 os.makedirs(CHROMA_DIR, exist_ok=True)
+print(f"Chroma dir: {CHROMA_DIR}")
 
 # Global state
-_chroma_client = None
+_vectorstore = None
 _embedder = None
 _chroma_ok = False
 
@@ -42,33 +42,46 @@ def load_docs(data_dir: str):
 def _splitter():
     return RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=100, separators=["\n\n","\n",". "," "])
 
-def _get_chroma_client():
-    """Get ChromaDB client with new client pattern and self-healing."""
-    global _chroma_client, _chroma_ok, CHROMA_DIR
+def _get_chroma_vectorstore():
+    """Get ChromaDB vectorstore with legacy API and self-healing."""
+    global _vectorstore, _chroma_ok, CHROMA_DIR
     
-    if _chroma_client is None:
+    if _vectorstore is None:
         def _try_init_chroma(path):
-            """Try to initialize ChromaDB client with given path."""
+            """Try to initialize ChromaDB vectorstore with given path."""
             try:
-                # Create client without deprecated settings
-                client = PersistentClient(path=path)
-                print(f"Chroma backend: new-client")
+                # Check for CHROMA_RESET=1
+                if os.getenv("CHROMA_RESET", "0").strip() == "1":
+                    print(f"🔄 CHROMA_RESET=1 detected, cleaning directory: {path}")
+                    if os.path.exists(path):
+                        shutil.rmtree(path, ignore_errors=True)
+                    os.makedirs(path, exist_ok=True)
+                
+                # Use legacy Chroma API with persist_directory
+                embedder = _get_embedder()
+                collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
+                vs = Chroma(
+                    persist_directory=path,
+                    collection_name=collection_name,
+                    embedding_function=embedder
+                )
+                print(f"Chroma backend: legacy SQLite")
                 print(f"Chroma dir: {path}")
-                return client
+                return vs
             except Exception as e:
                 error_msg = str(e).lower()
                 if "deprecated configuration" in error_msg or "readonly database" in error_msg:
                     print(f"⚠️  ChromaDB error: {e}")
                     return None
                 else:
-                    print(f"❌ ChromaDB client init failed: {e}")
+                    print(f"❌ ChromaDB vectorstore init failed: {e}")
                     return None
         
         # Try to initialize with current path
-        _chroma_client = _try_init_chroma(CHROMA_DIR)
+        _vectorstore = _try_init_chroma(CHROMA_DIR)
         
         # If error, try force clean
-        if _chroma_client is None:
+        if _vectorstore is None:
             force_clean = os.getenv("CHROMA_FORCE_CLEAN", "").lower() in {"1", "true"}
             if force_clean:
                 print(f"🔄 Force cleaning ChromaDB directory: {CHROMA_DIR}")
@@ -76,40 +89,35 @@ def _get_chroma_client():
                     if os.path.exists(CHROMA_DIR):
                         shutil.rmtree(CHROMA_DIR, ignore_errors=True)
                     os.makedirs(CHROMA_DIR, exist_ok=True)
-                    _chroma_client = _try_init_chroma(CHROMA_DIR)
+                    _vectorstore = _try_init_chroma(CHROMA_DIR)
                 except Exception as e:
                     print(f"⚠️  Force clean failed: {e}")
             
             # If still failing, fallback to timestamped directory
-            if _chroma_client is None:
+            if _vectorstore is None:
                 fallback_dir = f"/tmp/chroma_store/{int(time.time())}"
                 print(f"🔄 Falling back to: {fallback_dir}")
                 os.makedirs(fallback_dir, exist_ok=True)
                 CHROMA_DIR = fallback_dir  # Update global path
-                _chroma_client = _try_init_chroma(fallback_dir)
+                _vectorstore = _try_init_chroma(fallback_dir)
         
         # Set success flag
-        _chroma_ok = _chroma_client is not None
+        _chroma_ok = _vectorstore is not None
     
-    return _chroma_client
+    return _vectorstore
 
 def build_vectorstore(data_dir: str):
     """Build ChromaDB vector store from data directory."""
     try:
-        client = _get_chroma_client()
-        if client is None:
-            print("⚠️  ChromaDB client not available - skipping build")
+        vs = _get_chroma_vectorstore()
+        if vs is None:
+            print("⚠️  ChromaDB vectorstore not available - skipping build")
             return None
             
         splitter = _splitter()
         chunks = splitter.split_documents(load_docs(data_dir))
         
-        # Use new client pattern without persist_directory or client_settings
-        collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        embedder = _get_embedder()
-        vs = Chroma(client=client, collection_name=collection_name, embedding_function=embedder)
-        
-        # Add documents to the collection
+        # Add documents to the existing vectorstore
         vs.add_documents(chunks)
         print(f"ChromaDB vector store built successfully")
         return vs
@@ -120,15 +128,10 @@ def build_vectorstore(data_dir: str):
 def get_vectorstore():
     """Get existing ChromaDB vector store."""
     try:
-        client = _get_chroma_client()
-        if client is None:
-            print("⚠️  ChromaDB client not available - returning None")
+        vs = _get_chroma_vectorstore()
+        if vs is None:
+            print("⚠️  ChromaDB vectorstore not available - returning None")
             return None
-        
-        # Use new client pattern without persist_directory or client_settings
-        collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        embedder = _get_embedder()
-        vs = Chroma(client=client, collection_name=collection_name, embedding_function=embedder)
         
         print(f"ChromaDB vector store loaded successfully")
         return vs
@@ -152,18 +155,30 @@ def retrieve(query: str, k: int = 6):
         return []
 
 def get_document_count():
-    """Get document count using the most reliable method."""
+    """Get document count using the legacy Chroma API."""
     try:
-        client = _get_chroma_client()
-        if client is None:
+        vs = _get_chroma_vectorstore()
+        if vs is None:
             return 0
         
-        # Get the collection
-        collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        collection = client.get_collection(collection_name)
-        count = collection.count()
-        print(f"Chroma doc count: {count}")
-        return count
+        # Get document count using legacy API
+        # This is a best-effort approach since legacy API doesn't have direct count
+        try:
+            # Try to get all documents and count them
+            results = vs.similarity_search("", k=10000)  # Large k to get all docs
+            count = len(results)
+            print(f"Chroma doc count: {count}")
+            return count
+        except Exception:
+            # If that fails, try to access the underlying collection
+            try:
+                collection = vs._collection
+                count = collection.count()
+                print(f"Chroma doc count: {count}")
+                return count
+            except Exception:
+                print(f"⚠️  Could not get document count using legacy API")
+                return 0
     except Exception as e:
         print(f"⚠️  Could not get document count: {e}")
         return 0
@@ -190,17 +205,13 @@ def ingest_seed_corpus():
         chunks = splitter.split_documents(docs)
         print(f"📝 Split into {len(chunks)} chunks")
         
-        # Get ChromaDB client and add documents
-        client = _get_chroma_client()
-        if client is None:
-            print("⚠️  ChromaDB client not available - skipping ingestion")
+        # Get ChromaDB vectorstore and add documents
+        vs = _get_chroma_vectorstore()
+        if vs is None:
+            print("⚠️  ChromaDB vectorstore not available - skipping ingestion")
             return False
         
-        collection_name = os.getenv("CHROMA_COLLECTION", "aurora")
-        embedder = _get_embedder()
-        vs = Chroma(client=client, collection_name=collection_name, embedding_function=embedder)
-        
-        # Add documents to the collection
+        # Add documents to the existing vectorstore
         vs.add_documents(chunks)
         
         print(f"✅ Seed corpus ingested successfully")
@@ -224,8 +235,8 @@ def initialize_chroma_with_auto_ingest():
         print("🔄 Auto-ingesting seed corpus (CHROMA_AUTO_INGEST=1)")
         if ingest_seed_corpus():
             # Re-open vector store and get new count
-            global _chroma_client
-            _chroma_client = None  # Force re-initialization
+            global _vectorstore
+            _vectorstore = None  # Force re-initialization
             new_count = get_document_count()
             print(f"📊 Chroma doc count after auto-ingest: {new_count}")
         else:

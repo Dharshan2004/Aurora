@@ -42,8 +42,9 @@ RUN mkdir -p /data/chroma_store /tmp/chroma_store && \
 # Create a non-root user for security
 RUN useradd --create-home --shell /bin/bash app
 
-# Set ownership of app directory (but not data directories to avoid permission issues)
-RUN chown -R app:app /app
+# Set ownership of app directory and data directories
+RUN chown -R app:app /app && \
+    chown -R app:app /data/chroma_store /tmp/chroma_store
 
 # Build ChromaDB vector store from data directory
 RUN echo "Building ChromaDB vector store..." && \

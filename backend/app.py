@@ -209,9 +209,9 @@ def admin_reindex():
             shutil.rmtree(CHROMA_DIR, ignore_errors=True)
             os.makedirs(CHROMA_DIR, exist_ok=True)
         
-        # Force re-initialization of ChromaDB client
-        from rag import _chroma_client
-        globals()['_chroma_client'] = None
+        # Force re-initialization of ChromaDB vectorstore
+        from rag import _vectorstore
+        globals()['_vectorstore'] = None
         
         # Run ingestion
         success = ingest_seed_corpus()
