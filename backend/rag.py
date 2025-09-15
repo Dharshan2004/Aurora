@@ -1,8 +1,8 @@
 from pathlib import Path
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 import os
 import tempfile
 import time
@@ -106,7 +106,7 @@ def _get_chroma_settings():
                 chroma_db_impl="duckdb+parquet",
                 anonymized_telemetry=False
             )
-            print(f"✅ Chroma backend: duckdb+parquet")
+            print(f"Chroma backend: duckdb+parquet")
         except Exception as e:
             print(f"⚠️  Could not set ChromaDB settings: {e}")
             _chroma_settings = None
@@ -123,11 +123,12 @@ def _get_chroma_client():
             """Try to initialize ChromaDB client with given path."""
             try:
                 import chromadb
+                # Always use settings if available
                 if settings:
                     client = chromadb.PersistentClient(path=path, settings=settings)
                 else:
                     client = chromadb.PersistentClient(path=path)
-                print(f"✅ ChromaDB client initialized successfully")
+                print(f"ChromaDB client initialized successfully")
                 return client
             except Exception as e:
                 error_msg = str(e).lower()
@@ -175,7 +176,7 @@ def build_vectorstore(data_dir: str):
         splitter = _splitter()
         chunks = splitter.split_documents(load_docs(data_dir))
         
-        # Use consistent settings for LangChain Chroma
+        # Always use consistent settings for LangChain Chroma
         settings = _get_chroma_settings()
         if settings:
             vs = Chroma.from_documents(
@@ -188,7 +189,7 @@ def build_vectorstore(data_dir: str):
             vs = Chroma.from_documents(chunks, _get_embedder(), persist_directory=CHROMA_DIR)
         
         vs.persist()
-        print(f"✅ ChromaDB vector store built successfully")
+        print(f"ChromaDB vector store built successfully")
         return vs
     except Exception as e:
         print(f"❌ ChromaDB build failed: {e}")
@@ -202,7 +203,7 @@ def get_vectorstore():
             print("⚠️  ChromaDB client not available - returning None")
             return None
         
-        # Use consistent settings for LangChain Chroma
+        # Always use consistent settings for LangChain Chroma
         settings = _get_chroma_settings()
         if settings:
             vs = Chroma(
@@ -213,7 +214,7 @@ def get_vectorstore():
         else:
             vs = Chroma(persist_directory=CHROMA_DIR, embedding_function=_get_embedder())
         
-        print(f"✅ ChromaDB vector store loaded successfully")
+        print(f"ChromaDB vector store loaded successfully")
         return vs
     except Exception as e:
         print(f"❌ ChromaDB load failed: {e}")

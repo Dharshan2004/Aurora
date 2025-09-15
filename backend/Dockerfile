@@ -23,8 +23,12 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the entire backend directory into the container
 COPY . .
 
-# Clean up any SQLite .db files that might have been committed
-RUN find . -name "*.db" -type f -delete && echo "Cleaned up any .db files"
+# Clean up any SQLite .db files and ChromaDB persisted files that might have been committed
+RUN find . -name "*.db" -type f -delete && \
+    find . -name "chroma.sqlite3" -type f -delete && \
+    find . -name "*.parquet" -type f -delete && \
+    find . -path "*/chroma_store" -type d -exec rm -rf {} + 2>/dev/null || true && \
+    echo "Cleaned up any .db files and ChromaDB persisted files"
 
 # Ensure the CA certificate is available at /app/ca.pem
 # (The ca.pem file should already be in the backend directory)
