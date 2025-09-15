@@ -14,9 +14,9 @@ def _worker():
                 s.commit()
         except Exception as e:
             error_msg = str(e).lower()
-            if "readonly" in error_msg or "read-only" in error_msg:
+            if "readonly" in error_msg or "read-only" in error_msg or "permission denied" in error_msg:
                 # Silently skip audit logging for read-only databases
-                pass
+                print("⚠️  Skipping audit log due to read-only database")
             else:
                 # Log other errors for debugging
                 print(f"Audit logging error: {e}")

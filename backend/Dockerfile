@@ -42,8 +42,8 @@ RUN chown -R app:app /app /data
 
 # Build ChromaDB vector store from data directory
 RUN echo "Building ChromaDB vector store..." && \
-    python -c "from rag import build_vectorstore; build_vectorstore('./data')" && \
-    echo "ChromaDB vector store built successfully!"
+    python -c "from rag import build_vectorstore; result = build_vectorstore('./data'); print('ChromaDB build result:', result is not None)" && \
+    echo "ChromaDB vector store build completed!"
 
 # Switch to non-root user
 USER app

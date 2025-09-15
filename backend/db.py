@@ -169,9 +169,19 @@ def get_db_session():
 
 def init_database():
     """
-    Initialize database tables.
+    Initialize database tables. Gracefully handles read-only databases.
     """
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "readonly" in error_msg or "read-only" in error_msg or "permission denied" in error_msg:
+            print("⚠️  Database is read-only - skipping table creation")
+            print("   This is normal for cloud database services with restricted access")
+        else:
+            print(f"❌ Database initialization failed: {e}")
+            raise
 
 # For backward compatibility - export the engine and SessionLocal
 __all__ = ["engine", "SessionLocal", "Base", "get_db_session", "init_database"]

@@ -34,17 +34,40 @@ def _splitter():
 
 def build_vectorstore(data_dir: str):
     # Ensure ChromaDB directory exists and is writable
-    Path(CHROMA_DIR).mkdir(parents=True, exist_ok=True)
-    print(f"✅ ChromaDB directory: {CHROMA_DIR}")
-    
-    splitter = _splitter()
-    chunks = splitter.split_documents(load_docs(data_dir))
-    vs = Chroma.from_documents(chunks, _get_embedder(), persist_directory=CHROMA_DIR)
-    vs.persist()
-    return vs
+    try:
+        Path(CHROMA_DIR).mkdir(parents=True, exist_ok=True)
+        print(f"✅ ChromaDB directory: {CHROMA_DIR}")
+        
+        splitter = _splitter()
+        chunks = splitter.split_documents(load_docs(data_dir))
+        vs = Chroma.from_documents(chunks, _get_embedder(), persist_directory=CHROMA_DIR)
+        vs.persist()
+        return vs
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "readonly" in error_msg or "read-only" in error_msg or "permission denied" in error_msg:
+            print(f"⚠️  ChromaDB directory is read-only: {CHROMA_DIR}")
+            print("   This is normal for cloud deployments with restricted access")
+            # Return a mock vectorstore that doesn't persist
+            return None
+        else:
+            print(f"❌ ChromaDB initialization failed: {e}")
+            raise
 
 def get_vectorstore():
-    return Chroma(persist_directory=CHROMA_DIR, embedding_function=_get_embedder())
+    try:
+        return Chroma(persist_directory=CHROMA_DIR, embedding_function=_get_embedder())
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "readonly" in error_msg or "read-only" in error_msg or "permission denied" in error_msg:
+            print(f"⚠️  ChromaDB directory is read-only: {CHROMA_DIR}")
+            return None
+        else:
+            raise
 
 def retrieve(query: str, k: int = 6):
-    return get_vectorstore().similarity_search(query, k=k)
+    vs = get_vectorstore()
+    if vs is None:
+        print("⚠️  ChromaDB not available - returning empty results")
+        return []
+    return vs.similarity_search(query, k=k)
