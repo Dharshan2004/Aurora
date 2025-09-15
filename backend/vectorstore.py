@@ -91,8 +91,23 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
                     )
                     print("✅ Used 'embedding' parameter")
                 except Exception as e3:
-                    print(f"❌ All initialization attempts failed: {e3}")
-                    return None
+                    print(f"⚠️  Third attempt failed: {e3}")
+                    # Try without embedding parameter and set it later
+                    try:
+                        vector_store = Qdrant(
+                            client=client,
+                            collection_name=collection_name
+                        )
+                        print("✅ Initialized without embedding parameter")
+                        # Try to set embedding function after initialization
+                        try:
+                            vector_store._embedding_function = embedding
+                            print("✅ Set _embedding_function attribute")
+                        except Exception as e4:
+                            print(f"⚠️  Could not set _embedding_function: {e4}")
+                    except Exception as e5:
+                        print(f"❌ All initialization attempts failed: {e5}")
+                        return None
         
         # Ensure collection exists
         try:
@@ -163,24 +178,37 @@ def vector_count(store: Qdrant) -> int:
         
         # Get collection info
         collection_info = store.client.get_collection(store.collection_name)
-        count = collection_info.vectors_count
-        print(f"Vector count: {count}")
-        return count
+        
+        # Try different attributes for count
+        if hasattr(collection_info, 'vectors_count'):
+            count = collection_info.vectors_count
+            print(f"Vector count (vectors_count): {count}")
+            return count
+        elif hasattr(collection_info, 'points_count'):
+            count = collection_info.points_count
+            print(f"Vector count (points_count): {count}")
+            return count
+        elif hasattr(collection_info, 'status') and hasattr(collection_info.status, 'vectors_count'):
+            count = collection_info.status.vectors_count
+            print(f"Vector count (status.vectors_count): {count}")
+            return count
+        else:
+            print(f"⚠️  Collection info attributes: {dir(collection_info)}")
+            return 0
         
     except Exception as e:
         print(f"⚠️  Could not get vector count: {e}")
-        # Try alternative method
+        # Try alternative method using search
         try:
             if hasattr(store, 'client') and hasattr(store, 'collection_name'):
-                # Try to get collection stats
-                stats = store.client.get_collection(store.collection_name)
-                if hasattr(stats, 'vectors_count'):
-                    count = stats.vectors_count
-                    print(f"Vector count (alternative): {count}")
-                    return count
-                elif hasattr(stats, 'points_count'):
-                    count = stats.points_count
-                    print(f"Vector count (points): {count}")
+                # Try to search for all points to get count
+                result = store.client.scroll(
+                    collection_name=store.collection_name,
+                    limit=10000  # Large limit to get all points
+                )
+                if result and hasattr(result, 'points'):
+                    count = len(result.points)
+                    print(f"Vector count (scroll method): {count}")
                     return count
         except Exception as e2:
             print(f"⚠️  Alternative count method failed: {e2}")
@@ -192,6 +220,7 @@ def vector_count(store: Qdrant) -> int:
 def ensure_embedding_function(store: Qdrant, embedding) -> Qdrant:
     """
     Ensure the vector store has a proper embedding function set.
+    Since we can't modify the embeddings property directly, we'll recreate the store.
     
     Args:
         store: Qdrant vector store instance
@@ -212,21 +241,25 @@ def ensure_embedding_function(store: Qdrant, embedding) -> Qdrant:
             print("✅ Embeddings already set")
             return store
         
-        # Try to set the embedding function
-        print("🔄 Setting embedding function...")
-        if hasattr(store, 'embedding_function'):
-            store.embedding_function = embedding
-            print("✅ Set embedding_function attribute")
-        elif hasattr(store, 'embeddings'):
-            store.embeddings = embedding
-            print("✅ Set embeddings attribute")
-        else:
-            print("⚠️  Could not set embedding function - attribute not found")
+        # Since we can't modify the embeddings property, we need to recreate the store
+        print("🔄 Recreating vector store with proper embedding function...")
         
-        return store
+        # Get the client and collection name
+        client = store.client
+        collection_name = store.collection_name
+        
+        # Create new store with proper embedding function
+        new_store = Qdrant(
+            client=client,
+            collection_name=collection_name,
+            embedding_function=embedding
+        )
+        
+        print("✅ Recreated vector store with embedding function")
+        return new_store
         
     except Exception as e:
-        print(f"⚠️  Error setting embedding function: {e}")
+        print(f"⚠️  Error recreating vector store: {e}")
         return store
 
 def add_texts(store: Qdrant, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None) -> None:
