@@ -103,7 +103,12 @@ export default function ChatStream({
       <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4">
         <h1 className="text-xl font-semibold text-white">{title}</h1>
         <p className="text-sm text-neutral-400">
-          Ask onboarding questions. The response streams token-by-token from the backend.
+          {title === "Skill Navigator" 
+            ? "Get personalized learning plans. The response streams from the backend with detailed weekly goals and resources."
+            : title === "Progress Companion"
+            ? "Track your learning progress. The response streams from the backend with progress analysis and recommendations."
+            : "Ask questions. The response streams token-by-token from the backend."
+          }
         </p>
       </div>
 
@@ -138,10 +143,21 @@ export default function ChatStream({
         <label className="block text-sm text-neutral-300 mb-2">Agent response</label>
         <pre
           ref={preRef}
-          className="h-72 w-full overflow-auto whitespace-pre-wrap rounded-xl bg-neutral-900 p-3 text-neutral-100"
+          className={`min-h-72 max-h-96 w-full overflow-auto whitespace-pre-wrap rounded-xl bg-neutral-900 p-3 text-neutral-100 ${
+            title === "Skill Navigator" ? "text-sm leading-relaxed" : ""
+          }`}
         >
 {output || (!streaming && !error ? "" : "")}
         </pre>
+        {streaming && !output && (
+          <div className="mt-2 text-sm text-blue-400 flex items-center gap-2">
+            <div className="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full"></div>
+            {title === "Skill Navigator" 
+              ? "Generating your personalized learning plan..." 
+              : "Generating response..."
+            }
+          </div>
+        )}
         {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
       </div>
     </div>

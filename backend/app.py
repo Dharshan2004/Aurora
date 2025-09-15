@@ -308,11 +308,18 @@ def skillnav_stream(req: StreamReq):
     }
     
     try:
+        print(f"🧭 Skill Navigator - Question: '{req.msg}'")
         output, meta = execute_agent("skillnav", payload)
+        print(f"🧭 Skill Navigator output keys: {list(output.keys())}")
+        
         # Format the AI-powered plan as readable text
         plan = output.get("plan_30d", [])
         explainability = output.get("explainability", "AI-generated learning plan")
         ai_insights = output.get("ai_insights", "")
+        
+        print(f"🧭 Plan has {len(plan)} weeks")
+        print(f"🧭 Explainability: {explainability[:100]}...")
+        print(f"🧭 AI Insights length: {len(ai_insights)}")
         
         def plan_stream():
             yield f"{explainability}\n\n"
@@ -353,6 +360,16 @@ def skillnav_stream(req: StreamReq):
                         else:
                             yield f"  • {str(res)}\n"
                 
+                # Projects
+                projects = week_plan.get('projects', [])
+                if projects:
+                    yield "🚀 Projects:\n"
+                    for project in projects[:2]:  # Limit to 2 projects per week
+                        if isinstance(project, str):
+                            yield f"  • {project}\n"
+                        else:
+                            yield f"  • {str(project)}\n"
+                
                 # Project connection
                 project_connection = week_plan.get('project_connection', '')
                 if project_connection:
@@ -361,7 +378,8 @@ def skillnav_stream(req: StreamReq):
                 yield "\n"
             
             if ai_insights:
-                yield f"🤖 AI Insights: {ai_insights[:500]}...\n" if len(ai_insights) > 500 else f"🤖 AI Insights: {ai_insights}\n"
+                # Don't truncate AI insights - show full content
+                yield f"🤖 AI Insights:\n{ai_insights}\n"
         
         return StreamingResponse(plan_stream(), media_type="text/plain")
     except Exception as e:

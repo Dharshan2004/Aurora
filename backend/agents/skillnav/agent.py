@@ -52,7 +52,7 @@ def generate_ai_learning_plan(question: str, project_context: str, resources: Li
     
     # Create resource context for the LLM (limit to prevent token overflow)
     resource_list = []
-    for r in resources[:15]:  # Include more resources
+    for r in resources[:10]:  # Limit resources
         tags = r.get('tags', [])
         if isinstance(tags, list):
             tags_str = ', '.join(tags)
@@ -62,60 +62,104 @@ def generate_ai_learning_plan(question: str, project_context: str, resources: Li
     
     resource_context = "\n".join(resource_list)
     
-    # Limit project context to prevent token overflow but keep more context
-    if len(project_context) > 3000:
-        project_context = project_context[:3000] + "... (truncated)"
+    # Limit project context to prevent token overflow
+    if len(project_context) > 2000:
+        project_context = project_context[:2000] + "... (truncated)"
     
     try:
-        # Enhanced prompt for much better responses
-        user_prompt = f"""Based on the user's learning goal and our company's actual projects, create a detailed 4-week learning plan.
+        # Simplified prompt for better reliability
+        user_prompt = f"""Create a 4-week learning plan for: {question}
 
-USER'S LEARNING GOAL: {question}
-
-COMPANY PROJECT CONTEXT:
+Company Project Context:
 {project_context}
 
-AVAILABLE LEARNING RESOURCES:
+Available Resources:
 {resource_context}
 
-Please create a comprehensive 4-week plan that:
-1. Directly addresses the user's specific learning goal
-2. Aligns with our actual company project needs shown above
-3. Uses our available resources effectively
-4. Provides specific, actionable weekly goals
+Please create a structured plan with 4 weeks, each containing:
+- Specific learning goals
+- Key technologies to focus on
+- Recommended resources
+- Project connections
 
-Format your response as:
-
-Week 1: [Specific title based on user's goal]
-Goals: [2-3 specific, actionable goals related to the user's request and company projects]
-Key Technologies: [List specific technologies from our projects]
-Recommended Resources: [Pick relevant resources from the list above]
-Project Connection: [How this relates to our actual company projects]
-
-Week 2: [Continue with same format]
-[Continue for all 4 weeks]
-
-Make this plan specific to "{question}" and our company's actual technology stack and project needs."""
+Format as a clear, structured response."""
 
         response = client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
-                {"role": "system", "content": "You are an expert learning advisor for Aurora company. You create highly specific, project-aligned learning plans based on real company needs and available resources. Always reference specific projects and technologies mentioned in the context."},
+                {"role": "system", "content": "You are a learning advisor for Aurora company. Create practical, project-aligned learning plans."},
                 {"role": "user", "content": user_prompt}
             ],
-            max_completion_tokens=1000,
-            temperature=0.3,  # Lower temperature for more focused responses
-            timeout=15  # Longer timeout for better responses
+            max_completion_tokens=1500,
+            temperature=0.3,
+            timeout=15
         )
         
         ai_response = response.choices[0].message.content.strip()
+        print(f"🧭 AI Response length: {len(ai_response)}")
+        print(f"🧭 AI Response preview: {ai_response[:200]}...")
         
-        # Parse the enhanced AI response
-        return parse_enhanced_ai_response(ai_response, question, project_context)
+        # Return a simplified structure
+        return {
+            "plan_30d": create_simple_plan_from_response(ai_response, question),
+            "explanation": f"AI-generated learning plan for: {question}",
+            "ai_response": ai_response
+        }
         
     except Exception as e:
         print(f"Error generating AI plan: {e}")
         return create_fallback_plan(question)
+
+def create_simple_plan_from_response(ai_response: str, question: str) -> List[Dict]:
+    """Create a simple plan structure from AI response"""
+    # Split response into weeks
+    weeks = []
+    week_sections = ai_response.split('Week ')
+    
+    for i, section in enumerate(week_sections[1:], 1):  # Skip first empty split
+        lines = section.split('\n')
+        week_title = lines[0].strip() if lines else f"Week {i}"
+        
+        # Extract goals, technologies, resources from the text
+        goals = []
+        technologies = []
+        resources = []
+        
+        for line in lines[1:]:
+            line = line.strip()
+            if line.startswith('•') or line.startswith('-'):
+                goals.append(line[1:].strip())
+            elif 'technology' in line.lower() or 'tech' in line.lower():
+                # Extract technologies
+                tech_part = line.split(':')[-1].strip() if ':' in line else line
+                technologies.extend([t.strip() for t in tech_part.split(',')])
+            elif 'resource' in line.lower():
+                # Extract resources
+                res_part = line.split(':')[-1].strip() if ':' in line else line
+                resources.append(res_part)
+        
+        weeks.append({
+            "week": i,
+            "title": week_title,
+            "goals": goals[:3] if goals else [f"Learn key concepts for {question}"],
+            "technologies": technologies[:5] if technologies else ["Fundamentals"],
+            "resources": resources[:3] if resources else ["Online tutorials", "Documentation"],
+            "projects": [f"Practice project for Week {i}"]
+        })
+    
+    # Ensure we have 4 weeks
+    while len(weeks) < 4:
+        week_num = len(weeks) + 1
+        weeks.append({
+            "week": week_num,
+            "title": f"Week {week_num}",
+            "goals": [f"Continue learning {question}"],
+            "technologies": ["Advanced topics"],
+            "resources": ["Advanced resources"],
+            "projects": [f"Advanced project for Week {week_num}"]
+        })
+    
+    return weeks[:4]  # Return exactly 4 weeks
 
 def extract_learning_intent(question: str) -> Tuple[List[str], str]:
     """Extract skills/technologies and role from natural language question"""
@@ -392,12 +436,15 @@ def execute(payload: Dict[str, Any]) -> Tuple[Dict, Dict]:
     inp = payload.get("input", {})
     question = inp.get("question", "").strip()
     
+    print(f"🧭 Skill Navigator - Question: '{question}'")
+    
     if not question:
         question = "I want to learn new skills for my career development"
     
     try:
         # Use RAG to retrieve relevant project documentation (limit to 3 for speed)
         project_docs = retrieve(question, k=3)
+        print(f"🧭 Retrieved {len(project_docs)} project documents")
         
         # Create simplified project context
         project_context = ""
@@ -412,12 +459,16 @@ def execute(payload: Dict[str, Any]) -> Tuple[Dict, Dict]:
         if not project_context:
             project_context = "Focus on practical skills and industry-relevant technologies for software development."
         
+        print(f"🧭 Project context length: {len(project_context)}")
+        
         # Load available resources (limit for performance)
         resources = load_resources()[:15]
+        print(f"🧭 Loaded {len(resources)} resources")
         
         # Generate AI-powered learning plan with timeout protection
         try:
             ai_plan = generate_ai_learning_plan(question, project_context, resources)
+            print(f"🧭 AI plan generated successfully")
         except Exception as ai_error:
             print(f"AI generation failed: {ai_error}, using fallback")
             ai_plan = create_fallback_plan(question)
@@ -435,8 +486,11 @@ def execute(payload: Dict[str, Any]) -> Tuple[Dict, Dict]:
             "plan_30d": ai_plan.get("plan_30d", []),
             "citations": meta["citations"],
             "explainability": ai_plan.get("explanation", "AI-generated plan based on company projects"),
-            "ai_insights": ai_plan.get("ai_response", "")[:200] + "..." if len(ai_plan.get("ai_response", "")) > 200 else ai_plan.get("ai_response", "")
+            "ai_insights": ai_plan.get("ai_response", "")
         }
+        
+        print(f"🧭 Output plan has {len(output['plan_30d'])} weeks")
+        print(f"🧭 Explainability: {output['explainability'][:100]}...")
         
         return (output, meta)
         
