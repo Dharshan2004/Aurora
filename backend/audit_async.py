@@ -12,8 +12,14 @@ def _worker():
             with SessionLocal() as s:
                 s.add(AuditEvent(**item))
                 s.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "readonly" in error_msg or "read-only" in error_msg:
+                # Silently skip audit logging for read-only databases
+                pass
+            else:
+                # Log other errors for debugging
+                print(f"Audit logging error: {e}")
         finally:
             _q.task_done()
 

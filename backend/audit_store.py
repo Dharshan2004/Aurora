@@ -31,7 +31,18 @@ class AuditEvent(Base):
     decision_flags = Column(JSON)
 
 def init_db():
-    Base.metadata.create_all(bind=engine)
+    """Initialize database tables. Gracefully handles read-only databases."""
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Database tables created successfully")
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "readonly" in error_msg or "read-only" in error_msg or "permission denied" in error_msg:
+            print("⚠️  Database is read-only - skipping table creation")
+            print("   This is normal for cloud database services with restricted access")
+        else:
+            print(f"❌ Database initialization failed: {e}")
+            raise
 
 def now_ts():
     return datetime.now(timezone.utc).timestamp()

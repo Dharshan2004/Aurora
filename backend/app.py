@@ -67,8 +67,13 @@ def healthz():
             conn.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
-        db_status = f"error: {str(e)}"
-        print(f"Database connection error: {e}")  # Add logging for debugging
+        error_msg = str(e).lower()
+        if "readonly" in error_msg or "read-only" in error_msg:
+            db_status = "connected (read-only)"
+            print(f"Database is read-only: {e}")
+        else:
+            db_status = f"error: {str(e)}"
+            print(f"Database connection error: {e}")
     
     return {
         "ok": True, 
