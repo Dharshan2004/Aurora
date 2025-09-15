@@ -55,7 +55,17 @@ class StreamReq(BaseModel):
 
 @app.on_event("startup")
 def startup():
+    """Application startup with logging"""
+    print("🚀 Aurora Backend starting up...")
+    
+    # Log ChromaDB directory
+    from rag import CHROMA_DIR
+    print(f"📁 ChromaDB directory: {CHROMA_DIR}")
+    
+    # Initialize database (this will log dialect info)
     init_db()
+    
+    print("✅ Aurora Backend startup complete")
 
 @app.get("/healthz")
 def healthz():

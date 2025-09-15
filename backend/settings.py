@@ -1,6 +1,9 @@
 import os
 from dotenv import load_dotenv
-load_dotenv()
+
+# Only load .env file in local development, not in production (Hugging Face Spaces)
+if not os.getenv("HF_SPACE_ID") and not os.getenv("SPACE_ID"):
+    load_dotenv()
 
 class Settings:
     ENV = os.getenv("AURORA_ENV", "dev")

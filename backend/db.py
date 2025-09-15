@@ -13,8 +13,14 @@ try:
 except ImportError:
     pass
 
-# Read environment variables
-AURORA_DB_URL = os.getenv("AURORA_DB_URL", "mysql+pymysql://aurora_user:aurora_pass@localhost:3306/aurora_db?charset=utf8mb4")
+# Read environment variables - AURORA_DB_URL is required
+AURORA_DB_URL = os.getenv("AURORA_DB_URL")
+if not AURORA_DB_URL:
+    raise ValueError(
+        "AURORA_DB_URL environment variable is required. "
+        "Please set it to your MySQL connection string (e.g., mysql+pymysql://user:pass@host:port/db)"
+    )
+
 MYSQL_SSL_CA_PATH = os.getenv("MYSQL_SSL_CA_PATH", "/app/ca.pem")
 
 def create_aurora_engine():
@@ -24,6 +30,17 @@ def create_aurora_engine():
     print(f"Creating database engine with URL: {AURORA_DB_URL[:50]}...")
     print(f"SSL CA path: {MYSQL_SSL_CA_PATH}")
     print(f"SSL CA exists: {os.path.exists(MYSQL_SSL_CA_PATH)}")
+    
+    # Verify MySQL dialect
+    if not AURORA_DB_URL.startswith("mysql"):
+        from urllib.parse import urlparse
+        parsed = urlparse(AURORA_DB_URL)
+        host_port = f"{parsed.hostname}:{parsed.port}" if parsed.port else parsed.hostname
+        raise ValueError(
+            f"Database dialect must be MySQL, but got: {parsed.scheme} "
+            f"(host: {host_port}). Please set AURORA_DB_URL to a MySQL connection string "
+            f"in your Hugging Face Space environment variables."
+        )
     
     # Ensure we're using PyMySQL dialect and clean the URL
     db_url = AURORA_DB_URL
@@ -79,6 +96,9 @@ def create_aurora_engine():
             echo=False  # Set to True for debugging
         )
         print("Database engine created successfully")
+        # Log dialect information
+        dialect_name = engine.dialect.name
+        print(f"✅ Database dialect: {dialect_name}")
         return engine
     except Exception as e:
         print(f"Error creating database engine with SSL: {e}")
@@ -97,6 +117,9 @@ def create_aurora_engine():
                 echo=False
             )
             print("Fallback engine created successfully")
+            # Log dialect information
+            dialect_name = fallback_engine.dialect.name
+            print(f"✅ Database dialect: {dialect_name}")
             return fallback_engine
         except Exception as fallback_error:
             print(f"Fallback also failed: {fallback_error}")
@@ -109,6 +132,9 @@ def create_aurora_engine():
                 echo=False
             )
             print("Minimal engine created")
+            # Log dialect information
+            dialect_name = minimal_engine.dialect.name
+            print(f"✅ Database dialect: {dialect_name}")
             return minimal_engine
 
 # Lazy-loaded engine and session factory

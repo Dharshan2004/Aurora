@@ -23,18 +23,29 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the entire backend directory into the container
 COPY . .
 
+# Clean up any SQLite .db files that might have been committed
+RUN find . -name "*.db" -type f -delete && echo "Cleaned up any .db files"
+
 # Ensure the CA certificate is available at /app/ca.pem
 # (The ca.pem file should already be in the backend directory)
 RUN if [ ! -f ca.pem ]; then echo "WARNING: ca.pem not found! Please ensure it's in the backend directory."; fi
+
+# Create writable directories for ChromaDB and other persistent data
+RUN mkdir -p /data/chroma_store && \
+    echo "Created /data/chroma_store directory"
+
+# Create a non-root user for security
+RUN useradd --create-home --shell /bin/bash app
+
+# Set ownership of app directory and data directory
+RUN chown -R app:app /app /data
 
 # Build ChromaDB vector store from data directory
 RUN echo "Building ChromaDB vector store..." && \
     python -c "from rag import build_vectorstore; build_vectorstore('./data')" && \
     echo "ChromaDB vector store built successfully!"
 
-# Create a non-root user for security
-RUN useradd --create-home --shell /bin/bash app
-RUN chown -R app:app /app
+# Switch to non-root user
 USER app
 
 # Expose port 7860 as required by HuggingFace Spaces
@@ -42,7 +53,7 @@ EXPOSE 7860
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:7860/health')"
+    CMD python -c "import requests; requests.get('http://localhost:7860/healthz')"
 
 # Start the FastAPI application with uvicorn
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860", "--workers", "1"]
