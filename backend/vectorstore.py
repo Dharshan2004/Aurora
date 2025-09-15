@@ -63,11 +63,34 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
         client = QdrantClient(**client_kwargs)
         
         # Initialize vector store
-        vector_store = Qdrant(
-            client=client,
-            collection_name=collection_name,
-            embedding=embedding
-        )
+        try:
+            vector_store = Qdrant(
+                client=client,
+                collection_name=collection_name,
+                embedding_function=embedding
+            )
+        except Exception as e:
+            print(f"⚠️  First attempt failed: {e}")
+            # Try alternative parameter name
+            try:
+                vector_store = Qdrant(
+                    client=client,
+                    collection_name=collection_name,
+                    embeddings=embedding
+                )
+                print("✅ Used 'embeddings' parameter")
+            except Exception as e2:
+                print(f"⚠️  Second attempt failed: {e2}")
+                # Try without embedding parameter (will use default)
+                try:
+                    vector_store = Qdrant(
+                        client=client,
+                        collection_name=collection_name
+                    )
+                    print("✅ Initialized without embedding parameter")
+                except Exception as e3:
+                    print(f"❌ All initialization attempts failed: {e3}")
+                    return None
         
         # Ensure collection exists
         try:
@@ -79,7 +102,14 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
             print(f"🔄 Creating Qdrant collection: {collection_name}")
             
             # Get embedding dimension
-            embedding_dim = embedding.client.get_sentence_embedding_dimension()
+            try:
+                embedding_dim = embedding.client.get_sentence_embedding_dimension()
+                print(f"📏 Embedding dimension: {embedding_dim}")
+            except Exception as e:
+                print(f"⚠️  Could not get embedding dimension: {e}")
+                # Fallback to common dimension for sentence-transformers
+                embedding_dim = 384  # Default for all-MiniLM-L6-v2
+                print(f"📏 Using fallback embedding dimension: {embedding_dim}")
             
             # Create collection with cosine distance
             client.create_collection(
