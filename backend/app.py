@@ -124,7 +124,7 @@ def debug_env():
             "QDRANT_API_KEY": "Set" if os.getenv("QDRANT_API_KEY") else "Not set",
             "QDRANT_COLLECTION": os.getenv("QDRANT_COLLECTION", "aurora"),
             "AUTO_INGEST": os.getenv("AUTO_INGEST", "0"),
-            "SEED_DATA_DIR": os.getenv("SEED_DATA_DIR", "./data/seed"),
+            "SEED_DATA_DIR": os.getenv("SEED_DATA_DIR", "./data"),
             "RETRIEVAL_K": os.getenv("RETRIEVAL_K", "4"),
             "TOTAL_ENV_VARS": len(os.environ)
         }
@@ -217,14 +217,14 @@ def admin_reindex():
         raise HTTPException(status_code=403, detail="Admin access not enabled")
     
     try:
-        from rag import ingest_seed_corpus, get_document_count
+        from rag import ingest_data_corpus, get_document_count
         
         # Force re-initialization of vector store
         from rag import _vectorstore
         globals()['_vectorstore'] = None
         
         # Run ingestion
-        success = ingest_seed_corpus()
+        success = ingest_data_corpus()
         
         # Get new document count
         doc_count = get_document_count()

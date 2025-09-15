@@ -103,7 +103,15 @@ def init_vector_store(embedding) -> Optional[Qdrant]:
             
             # Get embedding dimension
             try:
-                embedding_dim = embedding.client.get_sentence_embedding_dimension()
+                # Try different methods to get embedding dimension
+                if hasattr(embedding, 'client') and hasattr(embedding.client, 'get_sentence_embedding_dimension'):
+                    embedding_dim = embedding.client.get_sentence_embedding_dimension()
+                elif hasattr(embedding, 'model') and hasattr(embedding.model, 'get_sentence_embedding_dimension'):
+                    embedding_dim = embedding.model.get_sentence_embedding_dimension()
+                else:
+                    # Test with a sample text to get dimension
+                    test_embedding = embedding.embed_query("test")
+                    embedding_dim = len(test_embedding)
                 print(f"📏 Embedding dimension: {embedding_dim}")
             except Exception as e:
                 print(f"⚠️  Could not get embedding dimension: {e}")
@@ -150,6 +158,18 @@ def vector_count(store: Qdrant) -> int:
         
     except Exception as e:
         print(f"⚠️  Could not get vector count: {e}")
+        # Try alternative method
+        try:
+            if hasattr(store, 'client') and hasattr(store, 'collection_name'):
+                # Try to get collection stats
+                stats = store.client.get_collection(store.collection_name)
+                if hasattr(stats, 'vectors_count'):
+                    count = stats.vectors_count
+                    print(f"Vector count (alternative): {count}")
+                    return count
+        except Exception as e2:
+            print(f"⚠️  Alternative count method failed: {e2}")
+        
         return 0
 
 def add_texts(store: Qdrant, texts: List[str], metadatas: Optional[List[Dict[str, Any]]] = None) -> None:
@@ -201,7 +221,7 @@ def test_environment():
         "QDRANT_API_KEY", 
         "QDRANT_COLLECTION",
         "AUTO_INGEST",
-        "SEED_DATA_DIR",
+        "SEED_DATA_DIR",  # Now points to ./data by default
         "RETRIEVAL_K"
     ]
     

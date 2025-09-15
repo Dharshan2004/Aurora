@@ -101,9 +101,8 @@ def retrieve(query: str, k: int = None):
         return []
     
     try:
-        # Create retriever with search parameters
-        retriever = vs.as_retriever(search_kwargs={"k": k})
-        results = retriever.get_relevant_documents(query)
+        # Use similarity_search directly instead of retriever to avoid embedding issues
+        results = vs.similarity_search(query, k=k)
         print(f"🔍 Retrieved {len(results)} documents for query: '{query[:50]}...'")
         return results
     except Exception as e:
@@ -123,22 +122,22 @@ def get_document_count():
         print(f"⚠️  Could not get document count: {e}")
         return 0
 
-def ingest_seed_corpus():
-    """Ingest seed data from SEED_DATA_DIR into vector store."""
-    seed_dir = os.getenv("SEED_DATA_DIR", "./data/seed")
+def ingest_data_corpus():
+    """Ingest all data from data directory into vector store."""
+    data_dir = os.getenv("SEED_DATA_DIR", "./data")
     
-    if not os.path.exists(seed_dir):
-        print(f"⚠️  Seed data directory not found: {seed_dir}")
+    if not os.path.exists(data_dir):
+        print(f"⚠️  Data directory not found: {data_dir}")
         return False
     
     try:
-        # Load documents from seed directory
-        docs = load_docs(seed_dir)
+        # Load documents from data directory
+        docs = load_docs(data_dir)
         if not docs:
-            print(f"⚠️  No documents found in seed directory: {seed_dir}")
+            print(f"⚠️  No documents found in data directory: {data_dir}")
             return False
         
-        print(f"📚 Loading {len(docs)} documents from {seed_dir}")
+        print(f"📚 Loading {len(docs)} documents from {data_dir}")
         
         # Split documents into chunks
         splitter = _splitter()
@@ -158,11 +157,11 @@ def ingest_seed_corpus():
         # Add documents to the vector store
         add_texts(vs, texts, metadatas)
         
-        print(f"✅ Seed corpus ingested successfully")
+        print(f"✅ Data corpus ingested successfully")
         return True
         
     except Exception as e:
-        print(f"❌ Seed corpus ingestion failed: {e}")
+        print(f"❌ Data corpus ingestion failed: {e}")
         return False
 
 def initialize_vectorstore_with_auto_ingest():
@@ -180,8 +179,8 @@ def initialize_vectorstore_with_auto_ingest():
     
     # If store is empty and auto-ingest is enabled, run ingestion
     if doc_count == 0 and auto_ingest:
-        print("🔄 Auto-ingesting seed corpus (AUTO_INGEST=1)")
-        if ingest_seed_corpus():
+        print("🔄 Auto-ingesting data corpus (AUTO_INGEST=1)")
+        if ingest_data_corpus():
             # Re-open vector store and get new count
             global _vectorstore
             _vectorstore = None  # Force re-initialization

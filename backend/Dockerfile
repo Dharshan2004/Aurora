@@ -44,11 +44,6 @@ RUN useradd --create-home --shell /bin/bash app
 RUN chown -R app:app /app && \
     chown -R app:app /tmp/data
 
-# Build vector store from data directory
-RUN echo "Building vector store..." && \
-    python -c "from rag import build_vectorstore; result = build_vectorstore('./data'); print('Vector store build result:', result is not None)" && \
-    echo "Vector store build completed!"
-
 # Switch to non-root user
 USER app
 
