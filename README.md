@@ -6,7 +6,7 @@
 
 Aurora is an AI ecosystem designed to empower young professionals throughout their career journey - from initial onboarding to leadership roles. Our mission aligns with SAP's motto: **"help the world run better and improve people's lives"** while showcasing Responsible AI and business scalability.
 
-The platform provides personalized guidance, skills growth planning, and transparent feedback to help young professionals navigate their career development within the SAP ecosystem and beyond.
+The platform provides personalized guidance, skills growth planning, and transparent feedback to help young professionals navigate their career development.
 
 ## 🏗️ **System Architecture**
 
